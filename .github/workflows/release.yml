@@ -1,0 +1,55 @@
+name: Release
+
+# Publishes to GitHub Packages when a version tag is pushed. The version is set
+# by hand in package.json first (see the README's release steps); this workflow
+# only checks and publishes.
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.3"
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: "@open-waters-digital"
+
+      - name: Check the tag matches package.json
+        run: ./scripts/check-release-tag.sh "$GITHUB_REF_NAME"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The whole gate, including the stale-generated-file check, before
+      # anything is published.
+      - name: Run quality gate
+        run: pnpm run ci:quality
+
+      - name: Publish
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

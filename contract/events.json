@@ -1,0 +1,580 @@
+{
+  "$comment": "The Open Waters event contract: the only hand-written definition. src/generated/contract.ts and docs/events.md are generated from it by `pnpm run generate`. Every item carries `since`, the taxonomy version that added it; a version's list is everything with `since` at or below it. Add, never rename or remove. See AGENTS.md.",
+  "versions": [
+    {
+      "version": 1,
+      "date": "2026-09-17",
+      "change": "First version"
+    },
+    {
+      "version": 2,
+      "date": "2026-09-22",
+      "change": "Added `consent_updated` and the `ad_consent` super property, for sites with paid advertising. Nothing renamed or removed: a v1 site that moves to v2 without a banner changes only its `taxonomy_version` and starts sending `ad_consent: \"unset\"`"
+    }
+  ],
+  "superProperties": [
+    {
+      "name": "site",
+      "since": 1,
+      "type": "string",
+      "origin": "both",
+      "example": "`radara`",
+      "doc": "The client slug. Matches the internal app's client registry"
+    },
+    {
+      "name": "taxonomy_version",
+      "since": 1,
+      "type": "string",
+      "origin": "both",
+      "example": "`\"{version}\"`",
+      "doc": "The version at the top of this file"
+    },
+    {
+      "name": "page_type",
+      "since": 1,
+      "type": "string",
+      "origin": "browser",
+      "example": "`service`",
+      "doc": "From the element carrying `data-page-type`: `<body>` on Astro, `<main>` on Next.js. One of the page types below. Browser only"
+    },
+    {
+      "name": "ad_consent",
+      "since": 2,
+      "type": { "enum": ["granted", "denied", "unset"] },
+      "origin": "browser",
+      "example": "`unset`",
+      "doc": "`granted`, `denied` or `unset`: the visitor's current \"Advertising\" choice. Always `unset` on a site with no consent banner. Browser only. See the skill's `references/advertising.md`, \"Reporting\""
+    }
+  ],
+  "pageTypes": {
+    "doc": "Add a new type here before using it on a site. These are what let the report compare \"service pages\" across clients whose URLs have nothing in common.",
+    "values": [
+      { "value": "home", "since": 1 },
+      { "value": "service", "since": 1 },
+      { "value": "product", "since": 1 },
+      { "value": "case_study", "since": 1 },
+      { "value": "about", "since": 1 },
+      { "value": "contact", "since": 1 },
+      { "value": "article", "since": 1 },
+      { "value": "listing", "since": 1 },
+      { "value": "legal", "since": 1 },
+      { "value": "other", "since": 1 }
+    ]
+  },
+  "stages": [
+    {
+      "key": "attention",
+      "title": "Attention",
+      "question": "are the right people finding us?",
+      "intro": ["PostHog records these itself. No custom events."],
+      "notes": [
+        "Search Console and PageSpeed data are pulled into the internal app separately."
+      ]
+    },
+    {
+      "key": "intent",
+      "title": "Intent",
+      "question": "what are they interested in?",
+      "intro": [],
+      "notes": [
+        "`cta_id` must be stable. Reports track it month on month, so a CTA whose wording changes keeps its id. A CTA that now does something different gets a new one."
+      ]
+    },
+    {
+      "key": "action",
+      "title": "Action",
+      "question": "did they act?",
+      "intro": [],
+      "notes": [
+        "`form_submitted` gives the funnel and the channel, because it shares a session with the page views. `lead_submitted` is the number reported to the client, because an ad blocker cannot remove it. Expect `form_submitted` to be a little lower. If it is *much* lower, that points to ad blocking or a broken client event, so investigate.",
+        "Never put field values, the message, or anything the visitor typed into any property."
+      ]
+    },
+    {
+      "key": "consent",
+      "title": "Consent",
+      "question": "who can we measure beyond the baseline?",
+      "intro": [
+        "Only on sites with a consent banner, which means sites running paid advertising or replay under the skill's `references/advertising.md`. A site with no banner never sends it, and its absence there is not drift."
+      ],
+      "notes": [
+        "It is sent through the cookieless baseline, as a count of how a banner is answered, which is a statistic about the site. Together with `ad_consent` it gives every report the coverage figure that consent-based data must state."
+      ],
+      "dashboardNote": "Sites with a banner only."
+    },
+    {
+      "key": "revenue",
+      "title": "Revenue",
+      "question": "did it make money?",
+      "intro": [
+        "Server side only, sent from the CRM integration or entered through the internal app once the client reports outcomes. Not every client will have these at first, and reports say so rather than leaving the stage out."
+      ],
+      "notes": [],
+      "dashboardNote": "Once they exist."
+    },
+    {
+      "key": "intelligence",
+      "title": "Intelligence",
+      "question": "what did we learn?",
+      "intro": [
+        "Not events. The learning log in the internal app records what changed on the site and when (a new proposition, a redesigned form, a campaign launch) so reports can connect a change to what followed."
+      ],
+      "notes": []
+    }
+  ],
+  "posthogEvents": [
+    {
+      "name": "$pageview",
+      "source": "posthog-js",
+      "carries": "URL, referrer, UTM parameters, device, country"
+    },
+    {
+      "name": "$pageleave",
+      "source": "posthog-js",
+      "carries": "Time on page and scroll"
+    }
+  ],
+  "events": [
+    {
+      "name": "cta_clicked",
+      "since": 1,
+      "stage": "intent",
+      "origin": "browser",
+      "firedWhen": "A click on any element with `data-cta`",
+      "properties": [
+        {
+          "name": "cta_id",
+          "since": 1,
+          "type": "string",
+          "required": true,
+          "doc": "stable slug, e.g. `hero-book-call`"
+        },
+        { "name": "cta_text", "since": 1, "type": "string", "required": true },
+        {
+          "name": "cta_location",
+          "since": 1,
+          "type": "string",
+          "required": false,
+          "doc": "section slug, e.g. `hero`"
+        }
+      ]
+    },
+    {
+      "name": "contact_link_clicked",
+      "since": 1,
+      "stage": "intent",
+      "origin": "browser",
+      "firedWhen": "A click on a `tel:`, `mailto:` or WhatsApp link",
+      "properties": [
+        {
+          "name": "channel",
+          "since": 1,
+          "type": { "enum": ["phone", "email", "whatsapp"] },
+          "required": true
+        },
+        {
+          "name": "cta_location",
+          "since": 1,
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "file_downloaded",
+      "since": 1,
+      "stage": "intent",
+      "origin": "browser",
+      "firedWhen": "A click on a link with `download`, or to a PDF, DOC(X), XLS(X), PPT(X), ZIP or CSV",
+      "properties": [
+        { "name": "file_name", "since": 1, "type": "string", "required": true },
+        { "name": "file_type", "since": 1, "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "outbound_link_clicked",
+      "since": 1,
+      "stage": "intent",
+      "origin": "browser",
+      "firedWhen": "A click on a link to another hostname",
+      "properties": [
+        {
+          "name": "link_domain",
+          "since": 1,
+          "type": "string",
+          "required": true,
+          "doc": "hostname only, never the full URL"
+        }
+      ]
+    },
+    {
+      "name": "scroll_depth_reached",
+      "since": 1,
+      "stage": "intent",
+      "origin": "browser",
+      "firedWhen": "The page first passes 25, 50, 75 or 100% scrolled",
+      "properties": [
+        {
+          "name": "depth_percent",
+          "since": 1,
+          "type": { "enum": [25, 50, 75, 100] },
+          "required": true,
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "name": "video_played",
+      "since": 1,
+      "stage": "intent",
+      "origin": "browser",
+      "firedWhen": "A video starts, once per video per page",
+      "properties": [
+        { "name": "video_id", "since": 1, "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "form_started",
+      "since": 1,
+      "stage": "action",
+      "origin": "browser",
+      "firedWhen": "First focus inside a `form[data-form-id]`, once per page",
+      "properties": [
+        { "name": "form_id", "since": 1, "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "form_error_shown",
+      "since": 1,
+      "stage": "action",
+      "origin": "browser",
+      "firedWhen": "A field fails validation and the error is shown",
+      "properties": [
+        { "name": "form_id", "since": 1, "type": "string", "required": true },
+        {
+          "name": "field_name",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "error_type",
+          "since": 1,
+          "type": { "enum": ["required", "format", "too_long", "server"] },
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "form_abandoned",
+      "since": 1,
+      "stage": "action",
+      "origin": "browser",
+      "firedWhen": "The visitor leaves the page after `form_started` without submitting",
+      "properties": [
+        { "name": "form_id", "since": 1, "type": "string", "required": true },
+        {
+          "name": "last_field",
+          "since": 1,
+          "type": "string",
+          "nullable": true,
+          "required": true,
+          "doc": "field **name**"
+        },
+        {
+          "name": "fields_completed",
+          "since": 1,
+          "type": "integer",
+          "required": true,
+          "doc": "count"
+        }
+      ]
+    },
+    {
+      "name": "form_submitted",
+      "since": 1,
+      "stage": "action",
+      "origin": "browser",
+      "firedWhen": "The site's form code confirms a successful submission",
+      "properties": [
+        { "name": "form_id", "since": 1, "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "lead_submitted",
+      "since": 1,
+      "stage": "action",
+      "origin": "server",
+      "firedWhen": "**Server.** The enquiry was delivered",
+      "properties": [
+        { "name": "form_id", "since": 1, "type": "string", "required": true },
+        {
+          "name": "lead_type",
+          "since": 1,
+          "type": "string",
+          "required": true,
+          "doc": "site-defined slug, e.g. `general`, `quote`, `partnership`"
+        }
+      ]
+    },
+    {
+      "name": "consent_updated",
+      "since": 2,
+      "stage": "consent",
+      "origin": "browser",
+      "firedWhen": "The visitor makes an explicit choice in the banner or the settings control. Not sent on page loads that only read a stored choice",
+      "properties": [
+        {
+          "name": "advertising",
+          "since": 2,
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "recordings",
+          "since": 2,
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "source",
+          "since": 2,
+          "type": { "enum": ["banner", "settings"] },
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "lead_qualified",
+      "since": 1,
+      "stage": "revenue",
+      "origin": "server",
+      "firedWhen": "The client confirms a lead was a real opportunity",
+      "properties": [
+        { "name": "lead_type", "since": 1, "type": "string", "required": true },
+        { "name": "form_id", "since": 1, "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "deal_won",
+      "since": 1,
+      "stage": "revenue",
+      "origin": "server",
+      "firedWhen": "A lead became paid work",
+      "properties": [
+        { "name": "lead_type", "since": 1, "type": "string", "required": true },
+        {
+          "name": "value",
+          "since": 1,
+          "type": "integer",
+          "required": true,
+          "doc": "number, whole units"
+        },
+        {
+          "name": "currency",
+          "since": 1,
+          "type": "string",
+          "required": true,
+          "doc": "ISO 4217"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "name": "Digital Dividend baseline",
+    "doc": "Created in every client project during setup. One row per stage. Each insight has a stable key, which provisioning uses to update it in place.",
+    "insights": [
+      {
+        "key": "attention.visitors_and_page_views",
+        "since": 1,
+        "stage": "attention",
+        "title": "Unique visitors and page views by week",
+        "kind": "trend",
+        "interval": "week",
+        "series": [
+          { "event": "$pageview", "math": "unique_visitors" },
+          { "event": "$pageview", "math": "total" }
+        ]
+      },
+      {
+        "key": "attention.visitors_by_channel",
+        "since": 1,
+        "stage": "attention",
+        "title": "Visitors by channel type",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
+        "breakdown": { "property": "$channel_type", "scope": "session" }
+      },
+      {
+        "key": "attention.visitors_by_referring_domain",
+        "since": 1,
+        "stage": "attention",
+        "title": "Visitors by referring domain",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
+        "breakdown": {
+          "property": "$entry_referring_domain",
+          "scope": "session"
+        }
+      },
+      {
+        "key": "attention.top_landing_pages",
+        "since": 1,
+        "stage": "attention",
+        "title": "Top landing pages",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
+        "breakdown": { "property": "$entry_pathname", "scope": "session" }
+      },
+      {
+        "key": "attention.visitors_by_device",
+        "since": 1,
+        "stage": "attention",
+        "title": "Visitors by device",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
+        "breakdown": { "property": "$device_type", "scope": "event" }
+      },
+      {
+        "key": "intent.cta_clicked_by_cta_id",
+        "since": 1,
+        "stage": "intent",
+        "title": "`cta_clicked` by `cta_id`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "cta_clicked", "math": "total" }],
+        "breakdown": { "property": "cta_id", "scope": "event" }
+      },
+      {
+        "key": "intent.contact_link_clicked_by_channel",
+        "since": 1,
+        "stage": "intent",
+        "title": "`contact_link_clicked` by `channel`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "contact_link_clicked", "math": "total" }],
+        "breakdown": { "property": "channel", "scope": "event" }
+      },
+      {
+        "key": "intent.file_downloaded_by_file_name",
+        "since": 1,
+        "stage": "intent",
+        "title": "`file_downloaded` by `file_name`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "file_downloaded", "math": "total" }],
+        "breakdown": { "property": "file_name", "scope": "event" }
+      },
+      {
+        "key": "intent.scroll_75_by_page_type",
+        "since": 1,
+        "stage": "intent",
+        "title": "Share of page views reaching 75% scroll, by `page_type`",
+        "kind": "ratio",
+        "interval": "week",
+        "series": [
+          {
+            "event": "scroll_depth_reached",
+            "math": "total",
+            "where": { "depth_percent": 75 }
+          },
+          { "event": "$pageview", "math": "total" }
+        ],
+        "breakdown": { "property": "page_type", "scope": "event" }
+      },
+      {
+        "key": "action.form_funnel",
+        "since": 1,
+        "stage": "action",
+        "title": "Funnel: `$pageview` → `form_started` → `form_submitted`, split by `form_id`",
+        "kind": "funnel",
+        "series": [
+          { "event": "$pageview", "math": "total" },
+          { "event": "form_started", "math": "total" },
+          { "event": "form_submitted", "math": "total" }
+        ],
+        "breakdown": { "property": "form_id", "scope": "event" }
+      },
+      {
+        "key": "action.lead_submitted_by_week",
+        "since": 1,
+        "stage": "action",
+        "title": "`lead_submitted` by week",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "lead_submitted", "math": "total" }]
+      },
+      {
+        "key": "action.form_abandoned_by_last_field",
+        "since": 1,
+        "stage": "action",
+        "title": "`form_abandoned` by `last_field`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "form_abandoned", "math": "total" }],
+        "breakdown": { "property": "last_field", "scope": "event" }
+      },
+      {
+        "key": "action.form_error_shown_by_field_name",
+        "since": 1,
+        "stage": "action",
+        "title": "`form_error_shown` by `field_name`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "form_error_shown", "math": "total" }],
+        "breakdown": { "property": "field_name", "scope": "event" }
+      },
+      {
+        "key": "revenue.lead_qualified_by_month",
+        "since": 1,
+        "stage": "revenue",
+        "title": "`lead_qualified` count by month",
+        "kind": "trend",
+        "interval": "month",
+        "series": [{ "event": "lead_qualified", "math": "total" }]
+      },
+      {
+        "key": "revenue.deal_won_by_month",
+        "since": 1,
+        "stage": "revenue",
+        "title": "`deal_won` count and value by month",
+        "kind": "trend",
+        "interval": "month",
+        "series": [
+          { "event": "deal_won", "math": "total" },
+          { "event": "deal_won", "math": "sum", "property": "value" }
+        ]
+      },
+      {
+        "key": "consent.page_views_by_ad_consent",
+        "since": 2,
+        "stage": "consent",
+        "title": "Share of `$pageview` by `ad_consent`, by week",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "$pageview", "math": "total" }],
+        "breakdown": { "property": "ad_consent", "scope": "event" }
+      },
+      {
+        "key": "consent.consent_updated_by_advertising",
+        "since": 2,
+        "stage": "consent",
+        "title": "`consent_updated` by `advertising`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [{ "event": "consent_updated", "math": "total" }],
+        "breakdown": { "property": "advertising", "scope": "event" }
+      }
+    ]
+  },
+  "changing": [
+    "Add, never rename. A replaced event keeps sending for one full reporting period beside its successor.",
+    "Add the new version to `versions` in `contract/events.json`, mark every addition with its `since`, run `pnpm run generate`, and freeze the version with `pnpm run freeze <version>`.",
+    "Add a changelog line: the version's `change` is it.",
+    "Release the package as a minor version. Each site adopts it through its Renovate pull request; the `taxonomy_version` property shows which sites are behind."
+  ]
+}

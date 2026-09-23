@@ -1,0 +1,348 @@
+{
+  "version": 1,
+  "events": [
+    {
+      "name": "cta_clicked",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "cta_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "cta_text",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "cta_location",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "contact_link_clicked",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "channel",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "phone",
+              "email",
+              "whatsapp"
+            ]
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "cta_location",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "file_downloaded",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "file_name",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "file_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "outbound_link_clicked",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "link_domain",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "scroll_depth_reached",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "depth_percent",
+          "type": {
+            "kind": "enum",
+            "values": [
+              25,
+              50,
+              75,
+              100
+            ]
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "video_played",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "video_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_started",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_error_shown",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "field_name",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "error_type",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "required",
+              "format",
+              "too_long",
+              "server"
+            ]
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_abandoned",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "last_field",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "fields_completed",
+          "type": {
+            "kind": "integer"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_submitted",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "lead_submitted",
+      "stage": "action",
+      "origin": "server",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "lead_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "lead_qualified",
+      "stage": "revenue",
+      "origin": "server",
+      "properties": [
+        {
+          "name": "lead_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "deal_won",
+      "stage": "revenue",
+      "origin": "server",
+      "properties": [
+        {
+          "name": "lead_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "value",
+          "type": {
+            "kind": "integer"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "currency",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "superProperties": [
+    {
+      "name": "site",
+      "type": {
+        "kind": "string"
+      },
+      "origin": "both"
+    },
+    {
+      "name": "taxonomy_version",
+      "type": {
+        "kind": "string"
+      },
+      "origin": "both"
+    },
+    {
+      "name": "page_type",
+      "type": {
+        "kind": "string"
+      },
+      "origin": "browser"
+    }
+  ],
+  "pageTypes": [
+    "home",
+    "service",
+    "product",
+    "case_study",
+    "about",
+    "contact",
+    "article",
+    "listing",
+    "legal",
+    "other"
+  ]
+}

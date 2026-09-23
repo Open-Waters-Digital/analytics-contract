@@ -1,0 +1,43 @@
+schema: spec-driven
+
+context: |
+  @open-waters-digital/analytics: the Open Waters analytics contract as a
+  private package on GitHub Packages. It holds the shared event list, versioned
+  as the taxonomy, and the browser, server and consent helpers that client sites
+  use to send it to their own PostHog project. The Open Waters analytics app
+  reads the contract export to check every site for drift.
+
+  Read /AGENTS.md before proposing or applying anything. The legal reasoning
+  (PECR, the ICO's statistical purposes exception, consent for advertising)
+  lives in the openwaters-analytics skill at
+  ~/.agents/skills/openwaters-analytics; this package enforces it in code.
+
+  Stack: TypeScript strict with noUncheckedIndexedAccess, ESM only, built with
+  tsc, tested with Vitest, pnpm. posthog-js and posthog-node are peer
+  dependencies. Consumers are Next.js and Astro sites, and the Next.js
+  analytics app.
+
+  Conventions:
+  - contract/events.json is the only hand-written definition of the contract.
+    Types and docs are generated, and CI fails on a stale generated file.
+  - Taxonomy versions only go up. Never rename or repurpose an event.
+  - Every export is a no-op without configuration and never throws.
+  - Separate entry points for browser, server, consent and contract, so a site
+    bundles only what it imports.
+  - No property can carry personal data or free text a visitor typed.
+  - British English.
+
+rules:
+  proposal:
+    - State the taxonomy version before and after, and the package version bump.
+    - Name every consumer that must change, and whether Renovate can merge it
+      unattended.
+    - State the bytes added to a consumer's eager client bundle.
+  design:
+    - Record rejected alternatives with one line each on why.
+    - For any outbound call, state its timeout and what happens when it fails.
+  tasks:
+    - Include tests for failure modes, not only the happy path.
+    - Include a task to regenerate and commit generated files.
+    - Include a task naming the skill edit and each consumer follow-up.
+    - End with a task to run `pnpm run ci:quality` and report the real result.

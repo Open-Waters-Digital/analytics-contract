@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Open Waters shared Renovate preset. Consumers extend it with github>Open-Waters-Digital/analytics-contract//renovate/default.",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/London",
+  "schedule": ["before 7am on monday"],
+  "platformAutomerge": true,
+  "hostRules": [
+    {
+      "description": "Installs the private contract package. GITHUB_PACKAGES_TOKEN is an organisation secret in the Renovate app, a GitHub token with read:packages only.",
+      "matchHost": "npm.pkg.github.com",
+      "hostType": "npm",
+      "token": "{{ secrets.GITHUB_PACKAGES_TOKEN }}"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Every other dependency, grouped into one weekly pull request so consumers are not flooded. Majors stay separate, because each needs reading.",
+      "matchPackageNames": ["!@open-waters-digital/analytics"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "weekly dependencies"
+    },
+    {
+      "description": "Contract fixes change no event or API: merged unattended once the consumer's own CI passes.",
+      "matchPackageNames": ["@open-waters-digital/analytics"],
+      "matchUpdateTypes": ["patch"],
+      "schedule": ["at any time"],
+      "automerge": true,
+      "labels": ["analytics-contract"]
+    },
+    {
+      "description": "A new taxonomy version (minor) or a breaking API (major) can need new markup or wiring on the site, so a person reviews it.",
+      "matchPackageNames": ["@open-waters-digital/analytics"],
+      "matchUpdateTypes": ["minor", "major"],
+      "schedule": ["at any time"],
+      "automerge": false,
+      "labels": ["analytics-contract", "needs-review"]
+    }
+  ]
+}
