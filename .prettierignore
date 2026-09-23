@@ -6,5 +6,4 @@ openspec/
 .claude/
 src/generated/
 docs/events.md
-test/fixtures/reference/
 contract/published/

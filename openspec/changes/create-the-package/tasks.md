@@ -1,7 +1,8 @@
 ## 1. Toolchain and gate
 
 - [x] 1.1 Add TypeScript (strict, `noUncheckedIndexedAccess`), ESLint, Prettier, Vitest with happy-dom, and `tsx`. Define `lint`, `typecheck`, `test`, `build`, `generate` and `generate:check`. `ci:quality` runs all of them. Verify that `pnpm run ci:quality` passes on the empty package.
-- [ ] 1.2 Add `.github/workflows/ci.yml` (frozen install, `ci:quality`) on pushes and pull requests. Verify on the first push, which is Alex's once the GitHub repo exists.
+- [x] 1.2 Add `.github/workflows/ci.yml` (frozen install, `ci:quality`) on pushes and pull requests. Verify on the first push, which is Alex's once the GitHub repo exists.
+  - Verified 2026-09-23: CI ran green on `b20a78e`, with the same gate in the Release run. The first run, on `0076d52`, failed at typecheck: the consumer fixture imported `dist/` before the build. That was fixed in `b20a78e` and checked from a fresh clone with a frozen install.
 - [x] 1.3 Set the `exports` map (`./browser`, `./server`, `./consent`, `./contract`), `files` (`dist`, `docs`), `sideEffects: false`, and the optional peers `posthog-js` and `posthog-node`. Verify with `pnpm pack --dry-run`, which lists only `dist/`, `docs/`, the README, the changelog and `package.json`.
 
 ## 2. The contract
@@ -52,7 +53,8 @@
 
 ## 7. Distribution
 
-- [ ] 7.1 Add `.github/workflows/release.yml`. On a `v*` tag it runs the gate, checks that the tag equals the `package.json` version, and publishes to GitHub Packages with `GITHUB_TOKEN` (`packages: write`). Verify the version check locally with `act`, or by reading the step's script, and in full on the first real release.
+- [x] 7.1 Add `.github/workflows/release.yml`. On a `v*` tag it runs the gate, checks that the tag equals the `package.json` version, and publishes to GitHub Packages with `GITHUB_TOKEN` (`packages: write`). Verify the version check locally with `act`, or by reading the step's script, and in full on the first real release.
+  - Verified 2026-09-23: the tag check passed and failed as expected locally. Release run #2 for `v1.0.0`, on `b20a78e`, ran the tag check, the gate and Publish green. Run #1 failed before Publish, so nothing was published and the unpublished tag was moved.
 - [x] 7.2 Add `renovate/default.json` (design D7). Verify it with `npx --package renovate renovate-config-validator`.
 - [x] 7.3 Write the README:
   - what the package is, and its four entry points
@@ -69,9 +71,11 @@
 
 ## 8. Release and consumers
 
-- [ ] 8.1 Write `CHANGELOG.md` with `1.0.0` and set the version. Hand the GitHub repo creation, the first push and the `v1.0.0` tag to Alex. Verify that the package appears under the organisation's packages once the release workflow finishes.
+- [x] 8.1 Write `CHANGELOG.md` with `1.0.0` and set the version. Hand the GitHub repo creation, the first push and the `v1.0.0` tag to Alex. Verify that the package appears under the organisation's packages once the release workflow finishes.
+  - Released 2026-09-23: `v1.0.0` on `b20a78e`, published by the Release workflow (reported by Alex).
 - [ ] 8.2 Hand Renovate's installation to Alex (the GitHub App on the organisation, with package read access). Verify that a consumer with the preset receives its onboarding pull request.
-- [ ] 8.3 Edit the skill (design D9) in `~/.agents` and commit it there. Verify that no listing of `analytics.ts`, `analytics-server.ts` or `consent.ts` remains, and that every reference to the contract names the package.
+- [x] 8.3 Edit the skill (design D9) in `~/.agents` and commit it there. Verify that no listing of `analytics.ts`, `analytics-server.ts` or `consent.ts` remains, and that every reference to the contract names the package.
+  - Done 2026-09-23 in `~/.agents` (`dc12e19`): no code listing remains, and the install, wiring, consent and contract all name the package. The reference fixture and its parity run were retired in the same step (design D5). `EXPECTED` still pins the behaviour.
 - [x] 8.4 Record the consumer follow-ups. Verify that each one exists as a proposal or a noted task in its own repo:
   - the analytics app's `adopt-the-contract-package`
   - luxury-gardens' `add-analytics` revised to install the package
@@ -80,4 +84,5 @@
 
 ## 9. The gate
 
-- [ ] 9.1 Run `pnpm run ci:quality` and report its real output. Verify that it passes, with no task ticked on a failing run.
+- [x] 9.1 Run `pnpm run ci:quality` and report its real output. Verify that it passes, with no task ticked on a failing run.
+  - 2026-09-23, from a clean `dist/`: generated files current, eslint and tsc clean, 6 files and 43 tests passed, Prettier clean, build done. Eager `/browser` entry 1,879 bytes gzipped; posthog-js chunk after idle 101,376 bytes gzipped.

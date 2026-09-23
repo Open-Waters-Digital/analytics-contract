@@ -1,8 +1,9 @@
 /**
- * One scenario, run against the skill's reference `analytics.ts` and against
- * `src/browser.ts` in separate test files (each gets its own document, since
- * both attach listeners to it). Both must produce `EXPECTED` exactly, which is
- * what "behaviour matches the reference" means.
+ * One scenario and the exact event stream it must produce. It was first run
+ * against the openwaters-analytics skill's reference `analytics.ts` as well as
+ * `src/browser.ts`, and both produced `EXPECTED`. The reference was retired on
+ * 23 September 2026, when the skill stopped carrying code and this package
+ * became the reference; `EXPECTED` still pins the behaviour it proved.
  */
 import { vi } from "vitest";
 
