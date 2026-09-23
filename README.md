@@ -65,19 +65,24 @@ entry point. Nothing PostHog-related is in the initial bundle.
      core-js: false
    ```
 
-4. Extend the shared Renovate preset, so releases arrive as pull requests. In
-   the site's `renovate.json`:
+4. Extend the organisation's Renovate settings and this package's rules, in
+   that order, so releases arrive as pull requests. In the site's
+   `renovate.json`:
 
    ```json
    {
      "extends": [
+       "github>Open-Waters-Digital/renovate-config",
        "github>Open-Waters-Digital/analytics-contract//renovate/default"
      ]
    }
    ```
 
-   Patch releases merge themselves once the site's CI passes. A minor release
-   (a new taxonomy version) waits for review.
+   The first is `Open-Waters-Digital/renovate-config`: the schedule, grouping,
+   release-age wait and GitHub Packages access every repository shares. The
+   second, `renovate/default.json` here, holds only this package's rules. Patch
+   releases merge themselves once the site's CI passes. A minor release (a new
+   taxonomy version) waits for review.
 
 ### In a Docker build (Railway)
 

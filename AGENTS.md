@@ -78,7 +78,7 @@ src/consent.ts             /consent
 src/contract.ts            /contract, over src/generated/ and contract-types.ts
 docs/events.md             Generated. Ships in the package
 test/parity/               The scenario that pins browser behaviour to EXPECTED
-renovate/default.json      The shared preset every consumer extends
+renovate/default.json      This package's Renovate rules. Organisation-wide settings are in renovate-config
 .github/workflows/         ci.yml on push; release.yml on a v* tag
 ```
 
