@@ -15,5 +15,8 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "test", "scripts", "vitest.config.ts"]
+  "include": ["src", "test", "scripts", "vitest.config.ts"],
+  // The consumer fixture imports the built dist/, which does not exist until
+  // the build step; `pnpm run measure` compiles it after the build.
+  "exclude": ["test/fixtures/consumer"]
 }
