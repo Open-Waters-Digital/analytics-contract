@@ -2,6 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Open Waters shared Renovate preset. Consumers extend it with github>Open-Waters-Digital/analytics-contract//renovate/default.",
   "extends": ["config:recommended"],
+  "mode": "full",
   "timezone": "Europe/London",
   "schedule": ["before 7am on monday"],
   "platformAutomerge": true,
