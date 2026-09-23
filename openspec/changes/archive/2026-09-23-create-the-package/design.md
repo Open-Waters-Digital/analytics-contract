@@ -363,3 +363,43 @@ than the contract.
 
 **Rollback:** a consumer pins the previous version. Nothing about a site's data
 depends on the package's version.
+
+## Changes during implementation
+
+Recorded at archive, 23 September 2026. The diff shows what changed; this is
+why.
+
+- **The contract source uses `since` markers rather than a full list per
+  version.** A version's list is derived. Adding is therefore the only edit
+  that keeps the frozen snapshots green, which makes "add, never rename" a
+  property of the file, not a rule someone has to remember.
+- **The consumer bundle is measured with esbuild, not Vite (task 3.4).** The
+  toolchain already carried esbuild through tsx, and it splits dynamic imports
+  the same way.
+- **Two corrections to the skill's consent store** (spec `consent-store`). A
+  choice that cannot be stored no longer runs consent-gated code, and
+  withdrawal clears cookies on every parent domain. The reference cleared
+  `.co.uk` and missed `.example.co.uk` on every UK site.
+- **Server capture resolves within five seconds overall, not only per
+  request.** posthog-node retries a failed request, so a per-request timeout
+  alone could hold the caller for fifteen seconds or more. The caller-facing
+  promise races a five-second deadline, and any retry finishes in the
+  background.
+- **posthog-js is about 101 KB gzipped**, against the 50–60 KB assumed when
+  this was proposed. It still loads only after idle; there is no smaller entry.
+- **Railway has no BuildKit secret mounts (design D6's open question).** The
+  `ARG`-in-the-install-stage pattern was verified on a real image, and it is
+  the only pattern the README gives.
+- **The first release failed** because the consumer fixture was typechecked
+  before `dist/` existed. It is excluded from the typecheck, since only the
+  measure step compiles it. Nothing had been published, so the `v1.0.0` tag was
+  moved to the fix.
+- **pnpm 11 consumers need `core-js: false` in `allowBuilds`.** It is added to
+  the README and the skill.
+- **The heatmaps gap.** The package forces heatmaps off, as the reference did.
+  open-waters turns them on deliberately, so that became its own proposal,
+  `add-heatmaps-option`.
+- **Renovate's installation (task 8.2) was handed to Alex** with step-by-step
+  instructions, and the change was archived before the first onboarding pull
+  request arrived. Nothing depends on Renovate until the first consumer adopts
+  the package.

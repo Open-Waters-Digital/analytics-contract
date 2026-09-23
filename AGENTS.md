@@ -66,6 +66,24 @@ export. The analytics app reads sites on every version at once.
 
 ---
 
+## Where things are
+
+```
+contract/events.json       The contract. Hand-written; everything else derives from it
+contract/published/        Frozen taxonomy versions. Never edited
+scripts/                   generate, freeze, measure-bundle, check-release-tag
+src/browser.ts             /browser
+src/server.ts              /server
+src/consent.ts             /consent
+src/contract.ts            /contract, over src/generated/ and contract-types.ts
+docs/events.md             Generated. Ships in the package
+test/parity/               The scenario that pins browser behaviour to EXPECTED
+renovate/default.json      The shared preset every consumer extends
+.github/workflows/         ci.yml on push; release.yml on a v* tag
+```
+
+**Released:** 1.0.0 on 23 September 2026, at taxonomy v2.
+
 ## Working with OpenSpec
 
 `@fission-ai/openspec` is a dev dependency.
@@ -86,8 +104,9 @@ rejected.
 
 ## Definition of done
 
-1. `pnpm run ci:quality` passes, and the real output is reported. This gate
-   arrives with the first change.
+1. `pnpm run ci:quality` passes, and the real output is reported. It runs the
+   generated-file check, lint, typecheck, tests, format, build and the consumer
+   bundle measurement, and the release workflow runs it again before publishing.
 2. Generated files are current.
 3. New behaviour has tests, including its failure modes.
 4. A taxonomy change has a changelog line and a version bump in
