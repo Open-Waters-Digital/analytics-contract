@@ -6,6 +6,8 @@
   "timezone": "Europe/London",
   "schedule": ["before 7am on monday"],
   "platformAutomerge": true,
+  "minimumReleaseAge": "1 day",
+  "internalChecksFilter": "strict",
   "hostRules": [
     {
       "description": "Installs the private contract package. GITHUB_PACKAGES_TOKEN is an organisation secret in the Renovate app, a GitHub token with read:packages only.",
