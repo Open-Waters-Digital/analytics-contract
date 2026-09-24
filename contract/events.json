@@ -10,6 +10,11 @@
       "version": 2,
       "date": "2026-09-22",
       "change": "Added `consent_updated` and the `ad_consent` super property, for sites with paid advertising. Nothing renamed or removed: a v1 site that moves to v2 without a banner changes only its `taxonomy_version` and starts sending `ad_consent: \"unset\"`"
+    },
+    {
+      "version": 3,
+      "date": "2026-09-24",
+      "change": "Added `channel`, `utm_source`, `utm_medium`, `utm_campaign`, `referring_domain` and `heard_about` to `lead_submitted`, and `channel` to `lead_qualified` and `deal_won`, so the server-side lead count splits by where visitors came from. All optional: the server capture sends `channel: \"unknown\"` on a lead that has none. Nothing renamed or removed"
     }
   ],
   "superProperties": [
@@ -40,7 +45,9 @@
     {
       "name": "ad_consent",
       "since": 2,
-      "type": { "enum": ["granted", "denied", "unset"] },
+      "type": {
+        "enum": ["granted", "denied", "unset"]
+      },
       "origin": "browser",
       "example": "`unset`",
       "doc": "`granted`, `denied` or `unset`: the visitor's current \"Advertising\" choice. Always `unset` on a site with no consent banner. Browser only. See the skill's `references/advertising.md`, \"Reporting\""
@@ -49,16 +56,46 @@
   "pageTypes": {
     "doc": "Add a new type here before using it on a site. These are what let the report compare \"service pages\" across clients whose URLs have nothing in common.",
     "values": [
-      { "value": "home", "since": 1 },
-      { "value": "service", "since": 1 },
-      { "value": "product", "since": 1 },
-      { "value": "case_study", "since": 1 },
-      { "value": "about", "since": 1 },
-      { "value": "contact", "since": 1 },
-      { "value": "article", "since": 1 },
-      { "value": "listing", "since": 1 },
-      { "value": "legal", "since": 1 },
-      { "value": "other", "since": 1 }
+      {
+        "value": "home",
+        "since": 1
+      },
+      {
+        "value": "service",
+        "since": 1
+      },
+      {
+        "value": "product",
+        "since": 1
+      },
+      {
+        "value": "case_study",
+        "since": 1
+      },
+      {
+        "value": "about",
+        "since": 1
+      },
+      {
+        "value": "contact",
+        "since": 1
+      },
+      {
+        "value": "article",
+        "since": 1
+      },
+      {
+        "value": "listing",
+        "since": 1
+      },
+      {
+        "value": "legal",
+        "since": 1
+      },
+      {
+        "value": "other",
+        "since": 1
+      }
     ]
   },
   "stages": [
@@ -149,7 +186,12 @@
           "required": true,
           "doc": "stable slug, e.g. `hero-book-call`"
         },
-        { "name": "cta_text", "since": 1, "type": "string", "required": true },
+        {
+          "name": "cta_text",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
         {
           "name": "cta_location",
           "since": 1,
@@ -169,7 +211,9 @@
         {
           "name": "channel",
           "since": 1,
-          "type": { "enum": ["phone", "email", "whatsapp"] },
+          "type": {
+            "enum": ["phone", "email", "whatsapp"]
+          },
           "required": true
         },
         {
@@ -187,8 +231,18 @@
       "origin": "browser",
       "firedWhen": "A click on a link with `download`, or to a PDF, DOC(X), XLS(X), PPT(X), ZIP or CSV",
       "properties": [
-        { "name": "file_name", "since": 1, "type": "string", "required": true },
-        { "name": "file_type", "since": 1, "type": "string", "required": true }
+        {
+          "name": "file_name",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "file_type",
+          "since": 1,
+          "type": "string",
+          "required": true
+        }
       ]
     },
     {
@@ -217,7 +271,9 @@
         {
           "name": "depth_percent",
           "since": 1,
-          "type": { "enum": [25, 50, 75, 100] },
+          "type": {
+            "enum": [25, 50, 75, 100]
+          },
           "required": true,
           "doc": ""
         }
@@ -230,7 +286,12 @@
       "origin": "browser",
       "firedWhen": "A video starts, once per video per page",
       "properties": [
-        { "name": "video_id", "since": 1, "type": "string", "required": true }
+        {
+          "name": "video_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        }
       ]
     },
     {
@@ -240,7 +301,12 @@
       "origin": "browser",
       "firedWhen": "First focus inside a `form[data-form-id]`, once per page",
       "properties": [
-        { "name": "form_id", "since": 1, "type": "string", "required": true }
+        {
+          "name": "form_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        }
       ]
     },
     {
@@ -250,7 +316,12 @@
       "origin": "browser",
       "firedWhen": "A field fails validation and the error is shown",
       "properties": [
-        { "name": "form_id", "since": 1, "type": "string", "required": true },
+        {
+          "name": "form_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
         {
           "name": "field_name",
           "since": 1,
@@ -260,7 +331,9 @@
         {
           "name": "error_type",
           "since": 1,
-          "type": { "enum": ["required", "format", "too_long", "server"] },
+          "type": {
+            "enum": ["required", "format", "too_long", "server"]
+          },
           "required": true
         }
       ]
@@ -272,7 +345,12 @@
       "origin": "browser",
       "firedWhen": "The visitor leaves the page after `form_started` without submitting",
       "properties": [
-        { "name": "form_id", "since": 1, "type": "string", "required": true },
+        {
+          "name": "form_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
         {
           "name": "last_field",
           "since": 1,
@@ -297,7 +375,12 @@
       "origin": "browser",
       "firedWhen": "The site's form code confirms a successful submission",
       "properties": [
-        { "name": "form_id", "since": 1, "type": "string", "required": true }
+        {
+          "name": "form_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        }
       ]
     },
     {
@@ -307,13 +390,82 @@
       "origin": "server",
       "firedWhen": "**Server.** The enquiry was delivered",
       "properties": [
-        { "name": "form_id", "since": 1, "type": "string", "required": true },
+        {
+          "name": "form_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
         {
           "name": "lead_type",
           "since": 1,
           "type": "string",
           "required": true,
           "doc": "site-defined slug, e.g. `general`, `quote`, `partnership`"
+        },
+        {
+          "name": "channel",
+          "since": 3,
+          "type": {
+            "enum": [
+              "direct",
+              "organic_search",
+              "paid_search",
+              "organic_social",
+              "paid_social",
+              "email",
+              "ai",
+              "referral",
+              "other_paid",
+              "unknown"
+            ]
+          },
+          "required": false,
+          "doc": "from the tab's landing attribution, classified by the package; `unknown` when it could not tell. The server capture always sends it on `lead_submitted`"
+        },
+        {
+          "name": "utm_source",
+          "since": 3,
+          "type": "string",
+          "required": false,
+          "doc": "parsed on the server; never a value containing `@` or a long run of digits"
+        },
+        {
+          "name": "utm_medium",
+          "since": 3,
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "utm_campaign",
+          "since": 3,
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "referring_domain",
+          "since": 3,
+          "type": "string",
+          "required": false,
+          "doc": "hostname only"
+        },
+        {
+          "name": "heard_about",
+          "since": 3,
+          "type": {
+            "enum": [
+              "search_engine",
+              "social_media",
+              "recommendation",
+              "directory",
+              "press",
+              "event",
+              "returning_client",
+              "other"
+            ]
+          },
+          "required": false,
+          "doc": "the visitor's own answer, where a site asks; each site maps its wording onto this list"
         }
       ]
     },
@@ -339,7 +491,9 @@
         {
           "name": "source",
           "since": 2,
-          "type": { "enum": ["banner", "settings"] },
+          "type": {
+            "enum": ["banner", "settings"]
+          },
           "required": true
         }
       ]
@@ -351,8 +505,38 @@
       "origin": "server",
       "firedWhen": "The client confirms a lead was a real opportunity",
       "properties": [
-        { "name": "lead_type", "since": 1, "type": "string", "required": true },
-        { "name": "form_id", "since": 1, "type": "string", "required": true }
+        {
+          "name": "lead_type",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "form_id",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "since": 3,
+          "type": {
+            "enum": [
+              "direct",
+              "organic_search",
+              "paid_search",
+              "organic_social",
+              "paid_social",
+              "email",
+              "ai",
+              "referral",
+              "other_paid",
+              "unknown"
+            ]
+          },
+          "required": false,
+          "doc": "carried from the lead, where the site stored it"
+        }
       ]
     },
     {
@@ -362,7 +546,12 @@
       "origin": "server",
       "firedWhen": "A lead became paid work",
       "properties": [
-        { "name": "lead_type", "since": 1, "type": "string", "required": true },
+        {
+          "name": "lead_type",
+          "since": 1,
+          "type": "string",
+          "required": true
+        },
         {
           "name": "value",
           "since": 1,
@@ -376,6 +565,26 @@
           "type": "string",
           "required": true,
           "doc": "ISO 4217"
+        },
+        {
+          "name": "channel",
+          "since": 3,
+          "type": {
+            "enum": [
+              "direct",
+              "organic_search",
+              "paid_search",
+              "organic_social",
+              "paid_social",
+              "email",
+              "ai",
+              "referral",
+              "other_paid",
+              "unknown"
+            ]
+          },
+          "required": false,
+          "doc": "carried from the lead, where the site stored it"
         }
       ]
     }
@@ -392,8 +601,14 @@
         "kind": "trend",
         "interval": "week",
         "series": [
-          { "event": "$pageview", "math": "unique_visitors" },
-          { "event": "$pageview", "math": "total" }
+          {
+            "event": "$pageview",
+            "math": "unique_visitors"
+          },
+          {
+            "event": "$pageview",
+            "math": "total"
+          }
         ]
       },
       {
@@ -403,8 +618,16 @@
         "title": "Visitors by channel type",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
-        "breakdown": { "property": "$channel_type", "scope": "session" }
+        "series": [
+          {
+            "event": "$pageview",
+            "math": "unique_visitors"
+          }
+        ],
+        "breakdown": {
+          "property": "$channel_type",
+          "scope": "session"
+        }
       },
       {
         "key": "attention.visitors_by_referring_domain",
@@ -413,7 +636,12 @@
         "title": "Visitors by referring domain",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
+        "series": [
+          {
+            "event": "$pageview",
+            "math": "unique_visitors"
+          }
+        ],
         "breakdown": {
           "property": "$entry_referring_domain",
           "scope": "session"
@@ -426,8 +654,16 @@
         "title": "Top landing pages",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
-        "breakdown": { "property": "$entry_pathname", "scope": "session" }
+        "series": [
+          {
+            "event": "$pageview",
+            "math": "unique_visitors"
+          }
+        ],
+        "breakdown": {
+          "property": "$entry_pathname",
+          "scope": "session"
+        }
       },
       {
         "key": "attention.visitors_by_device",
@@ -436,8 +672,16 @@
         "title": "Visitors by device",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "$pageview", "math": "unique_visitors" }],
-        "breakdown": { "property": "$device_type", "scope": "event" }
+        "series": [
+          {
+            "event": "$pageview",
+            "math": "unique_visitors"
+          }
+        ],
+        "breakdown": {
+          "property": "$device_type",
+          "scope": "event"
+        }
       },
       {
         "key": "intent.cta_clicked_by_cta_id",
@@ -446,8 +690,16 @@
         "title": "`cta_clicked` by `cta_id`",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "cta_clicked", "math": "total" }],
-        "breakdown": { "property": "cta_id", "scope": "event" }
+        "series": [
+          {
+            "event": "cta_clicked",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "cta_id",
+          "scope": "event"
+        }
       },
       {
         "key": "intent.contact_link_clicked_by_channel",
@@ -456,8 +708,16 @@
         "title": "`contact_link_clicked` by `channel`",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "contact_link_clicked", "math": "total" }],
-        "breakdown": { "property": "channel", "scope": "event" }
+        "series": [
+          {
+            "event": "contact_link_clicked",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "channel",
+          "scope": "event"
+        }
       },
       {
         "key": "intent.file_downloaded_by_file_name",
@@ -466,8 +726,16 @@
         "title": "`file_downloaded` by `file_name`",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "file_downloaded", "math": "total" }],
-        "breakdown": { "property": "file_name", "scope": "event" }
+        "series": [
+          {
+            "event": "file_downloaded",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "file_name",
+          "scope": "event"
+        }
       },
       {
         "key": "intent.scroll_75_by_page_type",
@@ -480,11 +748,19 @@
           {
             "event": "scroll_depth_reached",
             "math": "total",
-            "where": { "depth_percent": 75 }
+            "where": {
+              "depth_percent": 75
+            }
           },
-          { "event": "$pageview", "math": "total" }
+          {
+            "event": "$pageview",
+            "math": "total"
+          }
         ],
-        "breakdown": { "property": "page_type", "scope": "event" }
+        "breakdown": {
+          "property": "page_type",
+          "scope": "event"
+        }
       },
       {
         "key": "action.form_funnel",
@@ -493,11 +769,23 @@
         "title": "Funnel: `$pageview` → `form_started` → `form_submitted`, split by `form_id`",
         "kind": "funnel",
         "series": [
-          { "event": "$pageview", "math": "total" },
-          { "event": "form_started", "math": "total" },
-          { "event": "form_submitted", "math": "total" }
+          {
+            "event": "$pageview",
+            "math": "total"
+          },
+          {
+            "event": "form_started",
+            "math": "total"
+          },
+          {
+            "event": "form_submitted",
+            "math": "total"
+          }
         ],
-        "breakdown": { "property": "form_id", "scope": "event" }
+        "breakdown": {
+          "property": "form_id",
+          "scope": "event"
+        }
       },
       {
         "key": "action.lead_submitted_by_week",
@@ -506,7 +794,12 @@
         "title": "`lead_submitted` by week",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "lead_submitted", "math": "total" }]
+        "series": [
+          {
+            "event": "lead_submitted",
+            "math": "total"
+          }
+        ]
       },
       {
         "key": "action.form_abandoned_by_last_field",
@@ -515,8 +808,16 @@
         "title": "`form_abandoned` by `last_field`",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "form_abandoned", "math": "total" }],
-        "breakdown": { "property": "last_field", "scope": "event" }
+        "series": [
+          {
+            "event": "form_abandoned",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "last_field",
+          "scope": "event"
+        }
       },
       {
         "key": "action.form_error_shown_by_field_name",
@@ -525,8 +826,16 @@
         "title": "`form_error_shown` by `field_name`",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "form_error_shown", "math": "total" }],
-        "breakdown": { "property": "field_name", "scope": "event" }
+        "series": [
+          {
+            "event": "form_error_shown",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "field_name",
+          "scope": "event"
+        }
       },
       {
         "key": "revenue.lead_qualified_by_month",
@@ -535,7 +844,12 @@
         "title": "`lead_qualified` count by month",
         "kind": "trend",
         "interval": "month",
-        "series": [{ "event": "lead_qualified", "math": "total" }]
+        "series": [
+          {
+            "event": "lead_qualified",
+            "math": "total"
+          }
+        ]
       },
       {
         "key": "revenue.deal_won_by_month",
@@ -545,8 +859,15 @@
         "kind": "trend",
         "interval": "month",
         "series": [
-          { "event": "deal_won", "math": "total" },
-          { "event": "deal_won", "math": "sum", "property": "value" }
+          {
+            "event": "deal_won",
+            "math": "total"
+          },
+          {
+            "event": "deal_won",
+            "math": "sum",
+            "property": "value"
+          }
         ]
       },
       {
@@ -556,8 +877,16 @@
         "title": "Share of `$pageview` by `ad_consent`, by week",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "$pageview", "math": "total" }],
-        "breakdown": { "property": "ad_consent", "scope": "event" }
+        "series": [
+          {
+            "event": "$pageview",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "ad_consent",
+          "scope": "event"
+        }
       },
       {
         "key": "consent.consent_updated_by_advertising",
@@ -566,8 +895,52 @@
         "title": "`consent_updated` by `advertising`",
         "kind": "trend",
         "interval": "week",
-        "series": [{ "event": "consent_updated", "math": "total" }],
-        "breakdown": { "property": "advertising", "scope": "event" }
+        "series": [
+          {
+            "event": "consent_updated",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "advertising",
+          "scope": "event"
+        }
+      },
+      {
+        "key": "action.lead_submitted_by_channel",
+        "since": 3,
+        "stage": "action",
+        "title": "`lead_submitted` by `channel`",
+        "kind": "trend",
+        "interval": "week",
+        "series": [
+          {
+            "event": "lead_submitted",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "channel",
+          "scope": "event"
+        }
+      },
+      {
+        "key": "action.lead_submitted_by_heard_about",
+        "since": 3,
+        "stage": "action",
+        "title": "`lead_submitted` by `heard_about`",
+        "kind": "trend",
+        "interval": "month",
+        "series": [
+          {
+            "event": "lead_submitted",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "heard_about",
+          "scope": "event"
+        }
       }
     ]
   },

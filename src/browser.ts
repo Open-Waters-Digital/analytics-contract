@@ -51,6 +51,11 @@ export interface AnalyticsConfig {
 }
 
 const MAX_QUEUED = 100;
+/** The tab's first touch, for splitting leads by channel. See recordFirstTouch. */
+export const ATTRIBUTION_STORAGE_KEY = "ow-attribution";
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign"] as const;
+/** Longest value kept. The server trims to the same and cleans the rest. */
+const MAX_ATTRIBUTION_VALUE = 100;
 const OBJECTION_KEY = "ow-analytics-objection";
 
 // The consent store's shape. Written only on sites with a banner (the
@@ -97,6 +102,7 @@ export function initAnalytics(config: AnalyticsConfig): void {
   if (enabled || !key || !apiHost) return;
   enabled = true;
   site = config.site;
+  recordFirstTouch();
   listen();
 
   const load = () => {
@@ -178,6 +184,56 @@ export function hasObjected(): boolean {
     return localStorage.getItem(OBJECTION_KEY) === "1";
   } catch {
     return false;
+  }
+}
+
+/**
+ * Records where this tab's session began, once: the UTM source, medium and
+ * campaign from the landing URL, and the referring hostname if it is another
+ * site. Later pages keep the first touch. A landing with none of these stores
+ * an empty object, which says the session began directly and stops a later
+ * internal page claiming first touch.
+ *
+ * Session storage, so it lasts only as long as the tab. It holds no identifier
+ * and no click identifier (gclid, fbclid and the like are advertising
+ * identifiers), and it is only written once analytics is live and the visitor
+ * has not objected, because initAnalytics has passed those checks before it
+ * calls this. Its sole use is counting leads by channel in aggregate.
+ */
+function recordFirstTouch(): void {
+  try {
+    if (sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY) !== null) return;
+    const touch: Record<string, string> = {};
+    const params = new URLSearchParams(window.location.search);
+    for (const key of UTM_KEYS) {
+      const value = params.get(key)?.trim();
+      if (value) touch[key] = value.slice(0, MAX_ATTRIBUTION_VALUE);
+    }
+    if (document.referrer) {
+      const host = new URL(document.referrer).hostname;
+      if (host && host !== window.location.hostname) {
+        touch["referring_domain"] = host;
+      }
+    }
+    sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify(touch));
+  } catch {
+    // Storage blocked, or an unparseable referrer: no attribution, which the
+    // server records as an unknown channel.
+  }
+}
+
+/**
+ * The value a site's form sends with a submission, as the field
+ * `ow_attribution`: the tab's stored first touch as JSON, `"{}"` for a session
+ * that began directly, or `""` when there is none to read (analytics dormant,
+ * the visitor objected, or storage blocked). The server parses it with
+ * `parseAttribution` and never trusts it.
+ */
+export function attributionField(): string {
+  try {
+    return sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
   }
 }
 

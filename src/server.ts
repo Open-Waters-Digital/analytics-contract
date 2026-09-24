@@ -10,9 +10,11 @@
  */
 import { PostHog } from "posthog-node";
 
+import type { Attribution } from "./channels.js";
 import { TAXONOMY_VERSION, type ServerEvents } from "./generated/contract.js";
 
 export type { ServerEvents };
+export type { Attribution };
 
 // Server events go straight to PostHog, not through the proxy: ad blockers do
 // not run on the server.
@@ -70,6 +72,13 @@ export function createServerCapture(
         event,
         properties: {
           ...properties,
+          // Every lead carries a channel (spec lead-attribution). It is
+          // optional in the contract, so a site that has not wired the
+          // attribution is recorded as "unknown", not missing.
+          ...(event === "lead_submitted" &&
+          (properties as { channel?: string }).channel === undefined
+            ? { channel: "unknown" }
+            : {}),
           site,
           taxonomy_version: TAXONOMY_VERSION,
           $process_person_profile: false,
@@ -91,4 +100,91 @@ export function createServerCapture(
       );
     }
   };
+}
+
+// ── Attribution ─────────────────────────────────────────────────────────────
+
+/** Longest attribution field accepted, as sent by the browser. */
+const MAX_ATTRIBUTION_FIELD = 2_048;
+const MAX_VALUE = 100;
+const KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "referring_domain",
+] as const;
+
+/**
+ * Six or more digits, ignoring spaces: a phone number or an account number in
+ * a URL anyone can craft. Dashes still separate, so a dated campaign such as
+ * `sale-2026-09-24` is kept.
+ */
+const DIGIT_RUN = /\d{6,}/;
+
+function cleanValue(raw: string): string | undefined {
+  // Checked on the raw value, before anything is removed, or the @ would go.
+  if (raw.includes("@") || DIGIT_RUN.test(raw.replace(/\s+/g, ""))) {
+    return undefined;
+  }
+  const value = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9._+\- ]/g, "")
+    .trim()
+    .slice(0, MAX_VALUE)
+    .trim();
+  return value === "" ? undefined : value;
+}
+
+function cleanHostname(raw: string): string | undefined {
+  let host = raw.trim().toLowerCase();
+  if (host.includes("/")) {
+    try {
+      host = new URL(host.includes("://") ? host : `https://${host}`).hostname;
+    } catch {
+      return undefined;
+    }
+  }
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) && host.length <= 253
+    ? host
+    : undefined;
+}
+
+/**
+ * Parses the `ow_attribution` field a form sent, trusting nothing: a string of
+ * at most 2 KB holding a JSON object, of which only the four attribution keys
+ * are read, each a string. Values are lowercased, trimmed, cut to 100
+ * characters and stripped to letters, digits, `.`, `_`, `+`, `-` and spaces; a
+ * value containing `@` or six or more digits is dropped, and the referring
+ * domain is reduced to a hostname.
+ *
+ * Returns `null` for anything else (a missing field, an empty string, a
+ * nested object, an array, a number, oversized or invalid JSON, a known key
+ * that is not a string), which classifies as an `unknown` channel. Returns
+ * `{}` when every value was dropped, which classifies as `direct`. Never
+ * throws. Any other key, such as a forged `channel`, is ignored: the channel
+ * is always computed here, with `classifyChannel`.
+ */
+export function parseAttribution(raw: unknown): Attribution | null {
+  if (typeof raw !== "string" || raw.length > MAX_ATTRIBUTION_FIELD)
+    return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  const input = parsed as Record<string, unknown>;
+  const result: Attribution = {};
+  for (const key of KEYS) {
+    const value = input[key];
+    if (value === undefined) continue;
+    if (typeof value !== "string") return null;
+    const cleaned =
+      key === "referring_domain" ? cleanHostname(value) : cleanValue(value);
+    if (cleaned !== undefined) result[key] = cleaned;
+  }
+  return result;
 }

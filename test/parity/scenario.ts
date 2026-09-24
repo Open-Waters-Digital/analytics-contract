@@ -122,7 +122,7 @@ export async function runScenario(
 
 const SUPER = {
   site: "replace-me",
-  taxonomy_version: "2",
+  taxonomy_version: "3",
   page_type: "service",
   ad_consent: "unset",
 };

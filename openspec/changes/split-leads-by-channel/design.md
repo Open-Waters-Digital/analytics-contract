@@ -117,8 +117,34 @@ Anything else that fails is `null`, which is `unknown`.
   2. a paid medium, split by whether the source is search or social, with
      `other_paid` otherwise
   3. a known search or social source, or referring domain, as organic
-  4. any other referring domain, as `referral`
-  5. `{}` is `direct`, and `null` is `unknown`
+  4. an AI source or domain, as `ai`, before search, since some AI assistants
+     live on a search engine's domain
+  5. any other referring domain, or a referral or affiliate medium, as
+     `referral`
+  6. `{}` is `direct`, `null` is `unknown`, and tags that match nothing are
+     `unknown`
+- **Mapping PostHog's channel types onto ours** (settled while applying, from
+  PostHog's `channel_type.py` and `channel_definitions.json`):
+
+  | PostHog | Ours |
+  | ------- | ---- |
+  | Paid Search | `paid_search` |
+  | Paid Social | `paid_social` |
+  | Paid Video, Paid Shopping, Display, Cross Network, Paid Unknown | `other_paid` |
+  | Direct | `direct` |
+  | Email | `email` |
+  | AI | `ai` |
+  | Organic Search | `organic_search` |
+  | Organic Social, Organic Video | `organic_social` |
+  | Organic Shopping, Referral, Affiliate | `referral` |
+  | SMS, Push, Audio, Unknown | `unknown` |
+
+  Paid means a `utm_medium` of `cpc`, `cpm`, `cpv`, `cpa`, `ppc` or
+  `retargeting`, or one starting `paid`, as PostHog's. PostHog also counts
+  `gclid` and `gad_source`, which this package never stores (they are
+  advertising identifiers), so a click with only a `gclid` classifies by its
+  referrer instead. A known domain list is checked before the label match, so
+  `gemini.google.com` is `ai` and not search.
 - **A fixture test** asserts the result for about 40 source, medium and
   referrer cases. Each case's expected value is PostHog's channel type for the
   same inputs, mapped onto this list, as recorded when the table is written.
@@ -131,6 +157,21 @@ property.
 It is only a contract property with a fixed set of values. No code supports
 it, because the question, its wording and its position in a form are each
 site's own decision. A site maps its own answers onto the list on its server.
+
+### D6. `channel` optional in the contract, filled by the server capture
+
+The contract's own rule (spec `event-contract`, "Every version is kept") lets a
+new version add only optional properties, and the generator enforces it. So
+`channel` is optional on `lead_submitted` at v3, and the guarantee that every
+lead carries one moves into `createServerCapture`: for `lead_submitted`, a
+missing `channel` is sent as `"unknown"`.
+
+- **Rejected: required, with the rule relaxed.** It would force every upgrading
+  site to wire attribution before it compiles, but it also removes the rule
+  that makes a taxonomy upgrade safe to review rather than a breaking change,
+  for every future version, to serve one property.
+- "unknown" is honest: it already means "could not tell", which is what a site
+  that has not wired attribution is.
 
 ## Risks / Trade-offs
 
@@ -145,7 +186,7 @@ site's own decision. A site maps its own answers onto the list on its server.
 
 ## Migration Plan
 
-Release as `1.1.0`. Each site adopts v3 in a reviewed pull request that makes
+Release as `1.2.0`. Each site adopts v3 in a reviewed pull request that makes
 three changes:
 
 1. the form sends `ow_attribution`

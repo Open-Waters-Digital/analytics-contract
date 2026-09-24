@@ -82,8 +82,9 @@ renovate/default.json      This package's Renovate rules. Organisation-wide sett
 .github/workflows/         ci.yml on push; release.yml on a v* tag
 ```
 
-**Released:** 1.0.0 on 23 September 2026, at taxonomy v2. 1.1.0 (the
-`heatmaps` option) is committed and waits for its tag.
+**Released:** 1.0.0 on 23 September 2026, at taxonomy v2. 1.1.0, the
+`heatmaps` option, on 24 September 2026. 1.2.0 (taxonomy v3, leads by channel)
+is committed and waits for its tag.
 
 ## Working with OpenSpec
 

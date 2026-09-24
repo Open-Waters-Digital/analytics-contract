@@ -588,3 +588,126 @@ export function renderMarkdown(source: ContractSource): string {
     out.push(`| ${v.version} | ${v.date} | ${cell(v.change)} |`);
   return out.join("\n") + "\n";
 }
+
+// ── The channel table ───────────────────────────────────────────────────────
+
+export type ChannelCategory = "ai" | "search" | "social" | "video" | "shopping";
+
+export interface ChannelSource {
+  paid: {
+    mediums: string[];
+    mediumPrefix: string;
+    crossNetworkCampaign: string;
+  };
+  directSources: string[];
+  mediums: {
+    email: string[];
+    social: string[];
+    video: string[];
+    referral: string[];
+  };
+  sources: Record<ChannelCategory, string[]>;
+  domains: Record<string, ChannelCategory>;
+}
+
+const CATEGORIES: readonly string[] = [
+  "ai",
+  "search",
+  "social",
+  "video",
+  "shopping",
+];
+const TOP_KEYS = [
+  "$comment",
+  "paid",
+  "directSources",
+  "mediums",
+  "sources",
+  "domains",
+];
+
+/** Checks contract/channels.json, naming every problem at once. */
+export function validateChannels(raw: unknown): ChannelSource {
+  const problems: string[] = [];
+  const fail = (where: string, what: string) =>
+    problems.push(`${where}: ${what}`);
+  if (!isObject(raw))
+    throw new ContractError(["channels.json is not a JSON object"]);
+
+  for (const key of Object.keys(raw)) {
+    if (!TOP_KEYS.includes(key)) fail("channels.json", `unknown key ${key}`);
+  }
+  const lowerList = (where: string, v: unknown) => {
+    if (!Array.isArray(v) || v.length === 0)
+      return fail(where, "must be a non-empty list");
+    const seen = new Set<string>();
+    for (const item of v) {
+      if (
+        typeof item !== "string" ||
+        item !== item.toLowerCase().trim() ||
+        item === ""
+      ) {
+        fail(where, `${JSON.stringify(item)} must be lowercase and trimmed`);
+      } else if (seen.has(item)) fail(where, `duplicate ${item}`);
+      else seen.add(item);
+    }
+  };
+
+  const paid = isObject(raw["paid"]) ? raw["paid"] : {};
+  lowerList("paid.mediums", paid["mediums"]);
+  if (typeof paid["mediumPrefix"] !== "string")
+    fail("paid.mediumPrefix", "required");
+  if (typeof paid["crossNetworkCampaign"] !== "string") {
+    fail("paid.crossNetworkCampaign", "required");
+  }
+  lowerList("directSources", raw["directSources"]);
+  const mediums = isObject(raw["mediums"]) ? raw["mediums"] : {};
+  for (const m of ["email", "social", "video", "referral"])
+    lowerList(`mediums.${m}`, mediums[m]);
+
+  const sources = isObject(raw["sources"]) ? raw["sources"] : {};
+  const owner = new Map<string, string>();
+  for (const c of CATEGORIES) {
+    lowerList(`sources.${c}`, sources[c]);
+    for (const s of Array.isArray(sources[c])
+      ? (sources[c] as unknown[])
+      : []) {
+      if (typeof s !== "string") continue;
+      const prior = owner.get(s);
+      if (prior && prior !== c)
+        fail(`sources.${c}`, `${s} is also in ${prior}`);
+      owner.set(s, c);
+    }
+  }
+  for (const key of Object.keys(sources)) {
+    if (!CATEGORIES.includes(key)) fail("sources", `unknown category ${key}`);
+  }
+
+  const domains = isObject(raw["domains"]) ? raw["domains"] : {};
+  for (const [domain, category] of Object.entries(domains)) {
+    if (
+      domain !== domain.toLowerCase() ||
+      !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)
+    ) {
+      fail(`domains.${domain}`, "must be a lowercase hostname");
+    }
+    if (typeof category !== "string" || !CATEGORIES.includes(category)) {
+      fail(`domains.${domain}`, `unknown category ${String(category)}`);
+    }
+  }
+
+  if (problems.length > 0) throw new ContractError(problems);
+  return raw as unknown as ChannelSource;
+}
+
+export function renderChannels(channels: ChannelSource): string {
+  const { $comment: _comment, ...table } = channels as ChannelSource & {
+    $comment?: string;
+  };
+  return (
+    HEADER.replace("contract/events.json", "contract/channels.json") +
+    "\n" +
+    "/** Which sources, mediums and domains belong to which channel. */\n" +
+    `export const CHANNEL_TABLE = ${JSON.stringify(table, null, 2)} as const;\n`
+  );
+}

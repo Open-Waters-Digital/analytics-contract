@@ -1,0 +1,505 @@
+{
+  "version": 3,
+  "events": [
+    {
+      "name": "cta_clicked",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "cta_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "cta_text",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "cta_location",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "contact_link_clicked",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "channel",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "phone",
+              "email",
+              "whatsapp"
+            ]
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "cta_location",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "file_downloaded",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "file_name",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "file_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "outbound_link_clicked",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "link_domain",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "scroll_depth_reached",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "depth_percent",
+          "type": {
+            "kind": "enum",
+            "values": [
+              25,
+              50,
+              75,
+              100
+            ]
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "video_played",
+      "stage": "intent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "video_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_started",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_error_shown",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "field_name",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "error_type",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "required",
+              "format",
+              "too_long",
+              "server"
+            ]
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_abandoned",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "last_field",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "fields_completed",
+          "type": {
+            "kind": "integer"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "form_submitted",
+      "stage": "action",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "lead_submitted",
+      "stage": "action",
+      "origin": "server",
+      "properties": [
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "lead_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "channel",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "direct",
+              "organic_search",
+              "paid_search",
+              "organic_social",
+              "paid_social",
+              "email",
+              "ai",
+              "referral",
+              "other_paid",
+              "unknown"
+            ]
+          },
+          "required": false,
+          "nullable": false
+        },
+        {
+          "name": "utm_source",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        },
+        {
+          "name": "utm_medium",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        },
+        {
+          "name": "utm_campaign",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        },
+        {
+          "name": "referring_domain",
+          "type": {
+            "kind": "string"
+          },
+          "required": false,
+          "nullable": false
+        },
+        {
+          "name": "heard_about",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "search_engine",
+              "social_media",
+              "recommendation",
+              "directory",
+              "press",
+              "event",
+              "returning_client",
+              "other"
+            ]
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "consent_updated",
+      "stage": "consent",
+      "origin": "browser",
+      "properties": [
+        {
+          "name": "advertising",
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "recordings",
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "source",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "banner",
+              "settings"
+            ]
+          },
+          "required": true,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "lead_qualified",
+      "stage": "revenue",
+      "origin": "server",
+      "properties": [
+        {
+          "name": "lead_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "form_id",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "channel",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "direct",
+              "organic_search",
+              "paid_search",
+              "organic_social",
+              "paid_social",
+              "email",
+              "ai",
+              "referral",
+              "other_paid",
+              "unknown"
+            ]
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "deal_won",
+      "stage": "revenue",
+      "origin": "server",
+      "properties": [
+        {
+          "name": "lead_type",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "value",
+          "type": {
+            "kind": "integer"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "currency",
+          "type": {
+            "kind": "string"
+          },
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "channel",
+          "type": {
+            "kind": "enum",
+            "values": [
+              "direct",
+              "organic_search",
+              "paid_search",
+              "organic_social",
+              "paid_social",
+              "email",
+              "ai",
+              "referral",
+              "other_paid",
+              "unknown"
+            ]
+          },
+          "required": false,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "superProperties": [
+    {
+      "name": "site",
+      "type": {
+        "kind": "string"
+      },
+      "origin": "both"
+    },
+    {
+      "name": "taxonomy_version",
+      "type": {
+        "kind": "string"
+      },
+      "origin": "both"
+    },
+    {
+      "name": "page_type",
+      "type": {
+        "kind": "string"
+      },
+      "origin": "browser"
+    },
+    {
+      "name": "ad_consent",
+      "type": {
+        "kind": "enum",
+        "values": [
+          "granted",
+          "denied",
+          "unset"
+        ]
+      },
+      "origin": "browser"
+    }
+  ],
+  "pageTypes": [
+    "home",
+    "service",
+    "product",
+    "case_study",
+    "about",
+    "contact",
+    "article",
+    "listing",
+    "legal",
+    "other"
+  ]
+}

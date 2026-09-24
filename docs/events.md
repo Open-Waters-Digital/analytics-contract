@@ -2,7 +2,7 @@
 
 # Open Waters event list
 
-**Taxonomy version: 2**
+**Taxonomy version: 3**
 
 Every Open Waters site sends these events and nothing else, apart from PostHog's own `$`-prefixed events. Names are `object_verb`, in snake_case and the past tense. Properties are snake_case.
 
@@ -17,9 +17,9 @@ Sent automatically on every event, browser and server side.
 | Property | Type | Example | Notes |
 | -------- | ---- | ------- | ----- |
 | `site` | string | `radara` | The client slug. Matches the internal app's client registry |
-| `taxonomy_version` | string | `"2"` | The version at the top of this file |
+| `taxonomy_version` | string | `"3"` | The version at the top of this file |
 | `page_type` | string | `service` | From the element carrying `data-page-type`: `<body>` on Astro, `<main>` on Next.js. One of the page types below. Browser only |
-| `ad_consent` *(new in v2)* | string | `unset` | `granted`, `denied` or `unset`: the visitor's current "Advertising" choice. Always `unset` on a site with no consent banner. Browser only. See the skill's `references/advertising.md`, "Reporting" |
+| `ad_consent` *(v2)* | string | `unset` | `granted`, `denied` or `unset`: the visitor's current "Advertising" choice. Always `unset` on a site with no consent banner. Browser only. See the skill's `references/advertising.md`, "Reporting" |
 
 **Page types.** `home`, `service`, `product`, `case_study`, `about`, `contact`, `article`, `listing`, `legal`, `other`. Add a new type here before using it on a site. These are what let the report compare "service pages" across clients whose URLs have nothing in common.
 
@@ -61,7 +61,7 @@ Search Console and PageSpeed data are pulled into the internal app separately.
 | `form_error_shown` | A field fails validation and the error is shown | `form_id`, `field_name`, `error_type` (`required` \| `format` \| `too_long` \| `server`) |
 | `form_abandoned` | The visitor leaves the page after `form_started` without submitting | `form_id`, `last_field` (field **name**), `fields_completed` (count) |
 | `form_submitted` | The site's form code confirms a successful submission | `form_id` |
-| `lead_submitted` | **Server.** The enquiry was delivered | `form_id`, `lead_type` (site-defined slug, e.g. `general`, `quote`, `partnership`) |
+| `lead_submitted` | **Server.** The enquiry was delivered | `form_id`, `lead_type` (site-defined slug, e.g. `general`, `quote`, `partnership`), `channel` (from the tab's landing attribution, classified by the package; `unknown` when it could not tell. The server capture always sends it on `lead_submitted`) *(new in v3)*, `utm_source` (parsed on the server; never a value containing `@` or a long run of digits) *(new in v3)*, `utm_medium` *(new in v3)*, `utm_campaign` *(new in v3)*, `referring_domain` (hostname only) *(new in v3)*, `heard_about` (the visitor's own answer, where a site asks; each site maps its wording onto this list) *(new in v3)* |
 
 `form_submitted` gives the funnel and the channel, because it shares a session with the page views. `lead_submitted` is the number reported to the client, because an ad blocker cannot remove it. Expect `form_submitted` to be a little lower. If it is *much* lower, that points to ad blocking or a broken client event, so investigate.
 
@@ -75,7 +75,7 @@ Only on sites with a consent banner, which means sites running paid advertising 
 
 | Event | Fired when | Properties |
 | ----- | ---------- | ---------- |
-| `consent_updated` *(new in v2)* | The visitor makes an explicit choice in the banner or the settings control. Not sent on page loads that only read a stored choice | `advertising` (boolean) *(new in v2)*, `recordings` (boolean) *(new in v2)*, `source` (`banner` \| `settings`) *(new in v2)* |
+| `consent_updated` *(v2)* | The visitor makes an explicit choice in the banner or the settings control. Not sent on page loads that only read a stored choice | `advertising` (boolean) *(v2)*, `recordings` (boolean) *(v2)*, `source` (`banner` \| `settings`) *(v2)* |
 
 It is sent through the cookieless baseline, as a count of how a banner is answered, which is a statistic about the site. Together with `ad_consent` it gives every report the coverage figure that consent-based data must state.
 
@@ -87,8 +87,8 @@ Server side only, sent from the CRM integration or entered through the internal 
 
 | Event | Fired when | Properties |
 | ----- | ---------- | ---------- |
-| `lead_qualified` | The client confirms a lead was a real opportunity | `lead_type`, `form_id` |
-| `deal_won` | A lead became paid work | `lead_type`, `value` (number, whole units), `currency` (ISO 4217) |
+| `lead_qualified` | The client confirms a lead was a real opportunity | `lead_type`, `form_id`, `channel` (carried from the lead, where the site stored it) *(new in v3)* |
+| `deal_won` | A lead became paid work | `lead_type`, `value` (number, whole units), `currency` (ISO 4217), `channel` (carried from the lead, where the site stored it) *(new in v3)* |
 
 ---
 
@@ -106,8 +106,8 @@ Named **Digital Dividend baseline**. Created in every client project during setu
 | ----- | -------- |
 | Attention | Unique visitors and page views by week. Visitors by channel type. Visitors by referring domain. Top landing pages. Visitors by device |
 | Intent | `cta_clicked` by `cta_id`. `contact_link_clicked` by `channel`. `file_downloaded` by `file_name`. Share of page views reaching 75% scroll, by `page_type` |
-| Action | Funnel: `$pageview` → `form_started` → `form_submitted`, split by `form_id`. `lead_submitted` by week. `form_abandoned` by `last_field`. `form_error_shown` by `field_name` |
-| Consent | Sites with a banner only. Share of `$pageview` by `ad_consent`, by week *(new in v2)*. `consent_updated` by `advertising` *(new in v2)* |
+| Action | Funnel: `$pageview` → `form_started` → `form_submitted`, split by `form_id`. `lead_submitted` by week. `form_abandoned` by `last_field`. `form_error_shown` by `field_name`. `lead_submitted` by `channel` *(new in v3)*. `lead_submitted` by `heard_about` *(new in v3)* |
+| Consent | Sites with a banner only. Share of `$pageview` by `ad_consent`, by week *(v2)*. `consent_updated` by `advertising` *(v2)* |
 | Revenue | Once they exist. `lead_qualified` count by month. `deal_won` count and value by month |
 
 ---
@@ -125,3 +125,4 @@ Named **Digital Dividend baseline**. Created in every client project during setu
 | ------- | ---- | ------ |
 | 1 | 2026-09-17 | First version |
 | 2 | 2026-09-22 | Added `consent_updated` and the `ad_consent` super property, for sites with paid advertising. Nothing renamed or removed: a v1 site that moves to v2 without a banner changes only its `taxonomy_version` and starts sending `ad_consent: "unset"` |
+| 3 | 2026-09-24 | Added `channel`, `utm_source`, `utm_medium`, `utm_campaign`, `referring_domain` and `heard_about` to `lead_submitted`, and `channel` to `lead_qualified` and `deal_won`, so the server-side lead count splits by where visitors came from. All optional: the server capture sends `channel: "unknown"` on a lead that has none. Nothing renamed or removed |

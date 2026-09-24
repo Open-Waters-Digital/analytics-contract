@@ -22,3 +22,5 @@ export function isKnownVersion(version: number): version is TaxonomyVersion {
 export function eventsFor(version: number): readonly ListedEvent[] | undefined {
   return isKnownVersion(version) ? EVENT_LISTS[version] : undefined;
 }
+
+export { classifyChannel, type Attribution, type Channel } from "./channels.js";

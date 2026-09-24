@@ -10,9 +10,11 @@ identifier linking the lead to a visitor.
 
 Taxonomy v3 SHALL add these properties to `lead_submitted`:
 
-- a required `channel`, one of `direct`, `organic_search`, `paid_search`,
-  `organic_social`, `paid_social`, `email`, `referral`, `other_paid` or
-  `unknown`
+- an optional `channel`, one of `direct`, `organic_search`, `paid_search`,
+  `organic_social`, `paid_social`, `email`, `ai`, `referral`, `other_paid` or
+  `unknown`. Optional in the contract, because a new version only adds
+  optional properties; always sent in practice (see "Every lead carries a
+  channel")
 - optional `utm_source`, `utm_medium`, `utm_campaign` and `referring_domain`
 - optional `heard_about`, one of `search_engine`, `social_media`,
   `recommendation`, `directory`, `press`, `event`, `returning_client` or
@@ -32,6 +34,23 @@ It SHALL add an optional `channel`, from the same set, to `lead_qualified` and
 - **WHEN** the contract export is read for version 2
 - **THEN** `lead_submitted` has exactly the properties it had before this
   change
+
+### Requirement: Every lead carries a channel
+
+The server capture SHALL send `channel` on every `lead_submitted` at taxonomy
+v3. When the caller passes none, it SHALL send `channel: "unknown"`. A channel
+the caller does pass SHALL be sent unchanged.
+
+#### Scenario: A site that passes no channel
+
+- **WHEN** a site on v3 sends `lead_submitted` with only `form_id` and
+  `lead_type`
+- **THEN** the event carries `channel: "unknown"`
+
+#### Scenario: A site that passes one
+
+- **WHEN** a site sends `lead_submitted` with `channel: "paid_social"`
+- **THEN** the event carries `channel: "paid_social"`
 
 ### Requirement: First touch in the tab's session
 
@@ -112,6 +131,12 @@ site and the analytics app SHALL use it.
 
 - **WHEN** the attribution has source `facebook` and medium `paid`
 - **THEN** the channel is `paid_social`
+
+#### Scenario: An AI assistant
+
+- **WHEN** the attribution has the referring domain `chatgpt.com`, or the
+  source `perplexity`
+- **THEN** the channel is `ai`
 
 #### Scenario: A search referrer without tags
 

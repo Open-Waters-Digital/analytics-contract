@@ -24,11 +24,17 @@ This is the second weakness from the review recorded in `create-the-package`.
 ## What Changes
 
 - **Taxonomy v3.**
-  - `lead_submitted` gains a required `channel`, and optional `utm_source`,
+  - `lead_submitted` gains `channel`, and optional `utm_source`,
     `utm_medium`, `utm_campaign`, `referring_domain` and `heard_about`.
   - `lead_qualified` and `deal_won` gain an optional `channel`, so a site that
     stores the channel with the enquiry can carry it up the ladder later.
   - Nothing is renamed or removed.
+  - `channel` is optional in the contract, because a new version only adds
+    optional properties (spec `event-contract`), so no caller fails to compile
+    on upgrade. The server capture fills `channel: "unknown"` when a site passes
+    none, so every v3 lead still carries one, and a site that has not wired the
+    attribution shows up as "unknown" rather than missing. Decided while
+    applying, 24 September 2026, over relaxing the contract's rule.
 - **Landing attribution in the browser.**
   - On the first page of a tab's session, `/browser` records the UTM source,
     medium and campaign, and the referring domain. Only the hostname is kept,
@@ -46,6 +52,8 @@ This is the second weakness from the review recorded in `create-the-package`.
     - `organic_social`
     - `paid_social`
     - `email`
+    - `ai`, for ChatGPT, Claude, Perplexity and the like, as PostHog's own
+      "AI" channel (added while applying, 24 September 2026)
     - `referral`
     - `other_paid`
     - `unknown`
@@ -94,14 +102,13 @@ This is the second weakness from the review recorded in `create-the-package`.
 
 ### Modified Capabilities
 
-None yet. `event-contract`, `browser-capture` and `server-capture` arrive with
-`create-the-package`, which has not been archived. This change's requirements
-are written as a new capability so that it does not modify specs that do not yet
-exist. It depends on `create-the-package` being applied first.
+None. `event-contract`, `browser-capture` and `server-capture` are unchanged in
+what they require: v3 only adds optional properties, as `event-contract`
+already allows. This change's requirements are a new capability.
 
 ## Impact
 
-- **Taxonomy:** 2 → 3. Package: 1.0.x → `1.1.0`, a minor release, reviewed in
+- **Taxonomy:** 2 → 3. Package: 1.1.x → `1.2.0` (1.1.0 went to the heatmaps option), a minor release, reviewed in
   every consumer.
 - **Storage:** the first browser storage the baseline writes, apart from an
   objection. It is session-scoped, holds no identifier, and is written for a

@@ -3,7 +3,31 @@
 Package versions. The taxonomy (the event contract) has its own changelog in
 [`docs/events.md`](docs/events.md).
 
-## 1.1.0 — unreleased
+## 1.2.0 — unreleased
+
+Taxonomy v3: the server-side lead count splits by channel.
+
+- `lead_submitted` gains `channel`, `utm_source`, `utm_medium`, `utm_campaign`,
+  `referring_domain` and `heard_about`. `lead_qualified` and `deal_won` gain
+  `channel`. All are optional, as a new version's properties must be, so
+  nothing fails to compile on upgrade.
+- `/browser` keeps the tab's first touch (UTM tags and the referring hostname)
+  in session storage, from the landing page, only while analytics is live and
+  the visitor has not objected. `attributionField()` gives a form the value to
+  send.
+- `/server` adds `parseAttribution`, which trusts nothing: values that look
+  like an email address or a phone number are dropped, and anything malformed
+  is `null`. The capture sends `channel: "unknown"` on any `lead_submitted`
+  that passes none.
+- `/contract` adds `classifyChannel`, which follows PostHog's channel types
+  mapped onto `direct`, `organic_search`, `paid_search`, `organic_social`,
+  `paid_social`, `email`, `ai`, `referral`, `other_paid` and `unknown`, from
+  `contract/channels.json`.
+- The baseline dashboard gains `lead_submitted` by `channel` and by
+  `heard_about`.
+- The eager `/browser` entry is 2,054 bytes gzipped, 170 more than 1.1.0.
+
+## 1.1.0 — 2026-09-24
 
 Still taxonomy v2.
 

@@ -73,7 +73,7 @@ describe("createServerCapture", () => {
     expect(event?.properties).toMatchObject({
       ...lead,
       site: "test-site",
-      taxonomy_version: "2",
+      taxonomy_version: "3",
       $process_person_profile: false,
     });
   });

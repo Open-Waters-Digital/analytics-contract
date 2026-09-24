@@ -26,7 +26,7 @@ only what it uses.
 you use.
 
 **Cost in the page**, measured by `pnpm run measure` on every CI run: the eager
-`/browser` module is **1.9 KB gzipped** (1,884 bytes at 1.1.0). `posthog-js` arrives as a separate
+`/browser` module is **2.1 KB gzipped** (2,054 bytes at 1.2.0). `posthog-js` arrives as a separate
 chunk after the page is idle, and is **about 101 KB gzipped**; it has no smaller
 entry point. Nothing PostHog-related is in the initial bundle.
 
@@ -155,6 +155,12 @@ statistical purposes exception, but only viewed in aggregate, and the site's
 string `"true"` from an environment variable. PostHog's project-level heatmaps
 setting cannot override the site: the package always sets the option.
 
+**Leads by channel (1.2.0, taxonomy v3).** The browser keeps the tab's first
+touch (UTM tags and referring hostname) in session storage. The form sends
+`attributionField()` as `ow_attribution`, and the handler parses and classifies
+it; see below. The site's privacy page must mention the session-stored
+attribution.
+
 And in a form handler, after the enquiry is safely delivered:
 
 ```ts
@@ -165,8 +171,17 @@ const capture = createServerCapture({
   key: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 });
 
-void capture("lead_submitted", { form_id: "contact", lead_type: "general" });
+const attribution = parseAttribution(body.ow_attribution);
+void capture("lead_submitted", {
+  form_id: "contact",
+  lead_type: "general",
+  channel: classifyChannel(attribution),
+  ...attribution,
+});
 ```
+
+`classifyChannel` comes from `/contract` and `parseAttribution` from `/server`.
+A lead that passes no channel is sent as `channel: "unknown"`.
 
 `capture` never throws or rejects, and resolves within five seconds whatever
 PostHog does.

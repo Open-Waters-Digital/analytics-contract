@@ -4,9 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   ContractError,
+  renderChannels,
   renderMarkdown,
   renderTypeScript,
   resolveVersion,
+  validateChannels,
   validateSource,
 } from "../scripts/contract-source.js";
 import { EVENT_LISTS, TAXONOMY_VERSION } from "../src/contract.js";
@@ -146,7 +148,73 @@ describe("published versions", () => {
   });
 });
 
+describe("the channel table", () => {
+  const rawChannels = (): Record<string, unknown> =>
+    JSON.parse(readFileSync(`${root}contract/channels.json`, "utf8")) as Record<
+      string,
+      unknown
+    >;
+  const channelProblems = (
+    mutate: (json: Record<string, unknown>) => void,
+  ): string[] => {
+    const json = rawChannels();
+    mutate(json);
+    try {
+      validateChannels(json);
+    } catch (error) {
+      if (error instanceof ContractError) return error.problems;
+      throw error;
+    }
+    return [];
+  };
+
+  it("is valid", () => {
+    expect(() => validateChannels(rawChannels())).not.toThrow();
+  });
+
+  it("names an unknown key", () => {
+    expect(
+      channelProblems((j) => {
+        j["extra"] = [];
+      }),
+    ).toContainEqual("channels.json: unknown key extra");
+  });
+
+  it("names a source filed under two categories", () => {
+    expect(
+      channelProblems((j) => {
+        push(j, ["sources", "social"], "google");
+      }),
+    ).toContainEqual(expect.stringContaining("google is also in search"));
+  });
+
+  it("names a domain with an unknown category", () => {
+    expect(
+      channelProblems((j) => {
+        set(j, ["domains", "example.com"], "print");
+      }),
+    ).toContainEqual("domains.example.com: unknown category print");
+  });
+
+  it("names a source that is not lowercase", () => {
+    expect(
+      channelProblems((j) => {
+        push(j, ["sources", "search"], "Kagi2");
+      }),
+    ).toContainEqual(expect.stringContaining("must be lowercase"));
+  });
+});
+
 describe("generated files", () => {
+  it("src/generated/channels.ts is current", () => {
+    const channels = validateChannels(
+      JSON.parse(readFileSync(`${root}contract/channels.json`, "utf8")),
+    );
+    expect(readFileSync(`${root}src/generated/channels.ts`, "utf8")).toBe(
+      renderChannels(channels),
+    );
+  });
+
   it("src/generated/contract.ts is current", () => {
     expect(readFileSync(`${root}src/generated/contract.ts`, "utf8")).toBe(
       renderTypeScript(source),
