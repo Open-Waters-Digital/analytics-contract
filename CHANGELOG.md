@@ -3,7 +3,20 @@
 Package versions. The taxonomy (the event contract) has its own changelog in
 [`docs/events.md`](docs/events.md).
 
-## 1.0.0 — unreleased
+## 1.1.0 — unreleased
+
+Still taxonomy v2.
+
+- `initAnalytics` takes an optional `heatmaps: boolean`. It is off unless it is
+  exactly `true`, so every existing site behaves as before. It is for clients
+  that have decided on aggregate heatmaps. open-waters is one, and it could not
+  move to the package without this.
+- The package always sets `capture_heatmaps`. posthog-js reads the project's
+  heatmaps setting only when the option is unset, so the project cannot switch
+  heatmaps on behind a site's back.
+- The eager `/browser` entry is 1,884 bytes gzipped, 5 more than 1.0.0.
+
+## 1.0.0 — 2026-09-23
 
 First release, at taxonomy v2. Replaces the code the `openwaters-analytics`
 skill carried for sites to copy.

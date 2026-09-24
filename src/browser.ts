@@ -38,6 +38,16 @@ export interface AnalyticsConfig {
   spa: boolean;
   /** Masks element text and attributes in autocapture. True for regulated clients */
   regulated: boolean;
+  /**
+   * Aggregate click and scroll heatmaps. Off unless exactly `true`.
+   *
+   * A per-client decision, never a default: aggregate heatmaps can fall under
+   * the ICO's statistical purposes exception ("hits on sections of a page"),
+   * but only viewed in aggregate, and the site's AGENTS.md must record why they
+   * are on. See the openwaters-analytics skill. Replay is different in kind and
+   * always needs consent; this does not touch it.
+   */
+  heatmaps?: boolean;
 }
 
 const MAX_QUEUED = 100;
@@ -103,7 +113,13 @@ export function initAnalytics(config: AnalyticsConfig): void {
         capture_pageview: config.spa ? "history_change" : true,
         capture_pageleave: true,
         disable_session_recording: true,
-        capture_heatmaps: false,
+        // Always set, never left to PostHog: an explicit capture_heatmaps
+        // decides, and the project's own heatmaps setting is only read when it
+        // is unset (Heatmaps.isEnabled in posthog-js 1.433.10,
+        // lib/src/heatmaps.js). So a project setting cannot switch heatmaps on
+        // behind a site's back. `=== true`, because a setting read from an
+        // environment variable arrives as a string, and "false" is truthy.
+        capture_heatmaps: config.heatmaps === true,
         mask_all_text: config.regulated,
         mask_all_element_attributes: config.regulated,
         before_send: (event) => {

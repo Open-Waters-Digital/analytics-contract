@@ -1,6 +1,6 @@
 {
   "name": "@open-waters-digital/analytics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "The Open Waters analytics contract: the shared event list, and the browser, server and consent helpers every client site uses to send it to PostHog.",
   "license": "UNLICENSED",
   "type": "module",

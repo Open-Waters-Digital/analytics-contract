@@ -26,7 +26,7 @@ only what it uses.
 you use.
 
 **Cost in the page**, measured by `pnpm run measure` on every CI run: the eager
-`/browser` module is **1.9 KB gzipped**. `posthog-js` arrives as a separate
+`/browser` module is **1.9 KB gzipped** (1,884 bytes at 1.1.0). `posthog-js` arrives as a separate
 chunk after the page is idle, and is **about 101 KB gzipped**; it has no smaller
 entry point. Nothing PostHog-related is in the initial bundle.
 
@@ -134,6 +134,7 @@ export function Analytics() {
       apiHost: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       spa: true,
       regulated: false,
+      // heatmaps: true, // only if this client has decided on aggregate heatmaps
     });
   }, []);
   useEffect(() => {
@@ -146,6 +147,13 @@ export function Analytics() {
   return null;
 }
 ```
+
+**Heatmaps are off unless a site passes `heatmaps: true`.** They are a
+per-client decision: aggregate click and scroll maps can fall under the ICO's
+statistical purposes exception, but only viewed in aggregate, and the site's
+`AGENTS.md` must record why they are on. Only a real `true` counts, not the
+string `"true"` from an environment variable. PostHog's project-level heatmaps
+setting cannot override the site: the package always sets the option.
 
 And in a form handler, after the enquiry is safely delivered:
 

@@ -130,3 +130,80 @@ describe("the queue before PostHog loads", () => {
     expect(recorder.events.at(-1)?.properties["video_id"]).toBe("v99");
   });
 });
+
+describe("the heatmaps option", () => {
+  async function initWith(
+    override: Partial<Parameters<Browser["initAnalytics"]>[0]>,
+  ): Promise<ReturnType<typeof mockPosthog>> {
+    runCallbacksImmediately();
+    const { mod, recorder } = await freshModule();
+    mod.initAnalytics({ ...config, ...override });
+    await vi.waitFor(() => expect(recorder.config).not.toBeNull());
+    return recorder;
+  }
+
+  it.each([
+    ["absent", {}],
+    ["false", { heatmaps: false }],
+  ])("%s leaves heatmaps off", async (_label, override) => {
+    const recorder = await initWith(override);
+    expect(recorder.config?.["capture_heatmaps"]).toBe(false);
+  });
+
+  it("true turns heatmaps on and changes nothing else", async () => {
+    const off = await initWith({});
+    const on = await initWith({ heatmaps: true });
+    expect(on.config?.["capture_heatmaps"]).toBe(true);
+    const rest = (c: Record<string, unknown> | null) => {
+      const {
+        capture_heatmaps: _h,
+        before_send: _b,
+        loaded: _l,
+        ...others
+      } = c ?? {};
+      return others;
+    };
+    expect(rest(on.config)).toEqual(rest(off.config));
+    expect(on.config).toMatchObject({
+      cookieless_mode: "always",
+      person_profiles: "never",
+      disable_session_recording: true,
+    });
+  });
+
+  it('the string "true" from an environment variable does not turn them on', async () => {
+    const recorder = await initWith({
+      heatmaps: "true" as unknown as boolean,
+    });
+    expect(recorder.config?.["capture_heatmaps"]).toBe(false);
+  });
+
+  it("a regulated site keeps masking with heatmaps on", async () => {
+    const recorder = await initWith({ heatmaps: true, regulated: true });
+    expect(recorder.config).toMatchObject({
+      capture_heatmaps: true,
+      mask_all_text: true,
+      mask_all_element_attributes: true,
+    });
+  });
+
+  it.each([
+    [
+      "an objection",
+      () => localStorage.setItem("ow-analytics-objection", "1"),
+      {},
+    ],
+    ["an empty key", () => {}, { key: "" }],
+  ])(
+    "with heatmaps on, %s still loads nothing",
+    async (_label, arrange, override) => {
+      runCallbacksImmediately();
+      arrange();
+      const { mod, recorder } = await freshModule();
+      mod.initAnalytics({ ...config, ...override, heatmaps: true });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(recorder.imports).toBe(0);
+      expect(recorder.config).toBeNull();
+    },
+  );
+});
