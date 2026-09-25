@@ -32,22 +32,43 @@ entry point. Nothing PostHog-related is in the initial bundle.
 
 ## Installing in a site
 
-1. Tell pnpm where the scope lives. In the site's `.npmrc`:
+1. Tell pnpm where the scope lives. In the site's committed `.npmrc`, the
+   scope line and nothing else:
 
    ```
    @open-waters-digital:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
    ```
 
-   The token is read from the environment, so `.npmrc` holds no secret and is
-   committed.
+   **Do not put the token line here.** pnpm 11.5.3 and later do not expand an
+   environment variable in a project `.npmrc`'s auth line, so
+   `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}` in the site's own file
+   fails with a 401 on current pnpm, whatever the variable holds. Found on 24
+   September 2026 installing into Luxury Gardens with pnpm 11.27.
 
-2. Create a GitHub token with **`read:packages` only** and provide it as
-   `NODE_AUTH_TOKEN`:
-   - locally, in your shell or an untracked env file
-   - in CI, as a repository secret passed to the install step
-   - on Railway, as a service variable, listed with `preserve()` in
-     `.railway/railway.ts`
+2. Create a GitHub token with **`read:packages` only**, `NODE_AUTH_TOKEN`, and
+   give it to pnpm through a **user-level** `.npmrc`, which pnpm does expand:
+   - **Locally:** put the variable in your shell, and this line in `~/.npmrc`:
+
+     ```
+     //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+     ```
+
+   - **In CI:** `actions/setup-node` writes that file for you. Give it the
+     registry and scope, and the secret to the install step:
+
+     ```yaml
+     - uses: actions/setup-node@v7
+       with:
+         node-version-file: package.json
+         registry-url: https://npm.pkg.github.com
+         scope: "@open-waters-digital"
+     - run: pnpm install --frozen-lockfile
+       env:
+         NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+     ```
+
+   - **On Railway:** a service variable, listed with `preserve()` in
+     `.railway/railway.ts`, and passed to the Docker build as below.
 
 3. Install:
 
@@ -87,27 +108,56 @@ entry point. Nothing PostHog-related is in the initial bundle.
 ### In a Docker build (Railway)
 
 Railway does not support BuildKit secret mounts. It passes service variables to
-a Dockerfile as build arguments, and a build argument used in a `RUN` step is
-recorded in that stage's history. So the token is declared **only in the stage
-that installs**, and the runtime stage copies what it needs out of it:
+a Dockerfile as build arguments, which brings two problems, and the pattern
+below handles both.
+
+- **A build argument used in a `RUN` step is recorded in that stage's
+  history.** So the token is declared only in the stages that install, and the
+  runtime stage copies what it needs out of them.
+- **BuildKit prints a `RUN` step with its build arguments expanded.** Written
+  inline, as `RUN printf '...%s' "$NODE_AUTH_TOKEN" > ~/.npmrc && pnpm install`,
+  the token appears in plain text in the build log, which anyone with access
+  to the Railway project can read. So the install runs from a script, and the
+  step reads only `sh docker-install.sh`. Found on 24 September 2026, when a
+  Luxury Gardens build log carried the token 13 times.
+
+`scripts/docker-install.sh`, committed:
+
+```sh
+#!/bin/sh
+# pnpm 11.5.3+ will not expand a token from the committed .npmrc, so a
+# user-level one is written, used and removed in this one step: it never lands
+# in a layer, and the step's printed command never contains it.
+printf '//npm.pkg.github.com/:_authToken=%s\n' "${NODE_AUTH_TOKEN:-}" > "$HOME/.npmrc"
+pnpm install --frozen-lockfile "$@"
+status=$?
+rm -f "$HOME/.npmrc"
+exit $status
+```
+
+The Dockerfile:
 
 ```dockerfile
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 # Only here. Railway supplies it from the service variable of the same name.
 ARG NODE_AUTH_TOKEN
-COPY package.json pnpm-lock.yaml .npmrc ./
-RUN corepack enable && pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml .npmrc scripts/docker-install.sh ./
+RUN corepack enable && sh docker-install.sh
 
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 # …the build output. Never `ARG NODE_AUTH_TOKEN` in this stage.
 ```
 
-Checked on 23 September 2026 with a test image built this way: neither
-`docker history --no-trunc` nor `docker image inspect` of the final image, nor
-a search of its filesystem, finds the token.
+A production-dependencies stage installs the same way, with
+`sh docker-install.sh --prod`.
+
+Checked on 24 September 2026 with a full Luxury Gardens image built this way:
+no layer, no `docker history --no-trunc` entry, no `docker image inspect`
+field and no line of the build log carries the token, and the private package
+still installs.
 
 ### Wiring
 
