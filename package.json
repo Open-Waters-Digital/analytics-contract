@@ -73,7 +73,7 @@
     "esbuild": "0.28.2",
     "eslint": "^9.39.5",
     "globals": "^17.12.0",
-    "happy-dom": "^20.14.5",
+    "happy-dom": "^21.0.0",
     "posthog-js": "1.433.10",
     "posthog-node": "5.52.4",
     "prettier": "^3.9.8",
