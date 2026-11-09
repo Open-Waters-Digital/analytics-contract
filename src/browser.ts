@@ -375,11 +375,26 @@ function onClick(event: MouseEvent): void {
   }
 }
 
-/** Visible text, or the accessible name for an icon-only control. */
+/**
+ * The text a screen reader would read, or the accessible name for an
+ * icon-only control. Text inside `aria-hidden="true"` is skipped: a control
+ * that animates its label draws decorative copies beside one readable copy,
+ * and `textContent` would send them all ("Sign UpSign UpSign Up").
+ */
 function ctaText(element: HTMLElement): string {
-  const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+  const text = readableText(element).replace(/\s+/g, " ").trim();
   const label = (element.getAttribute("aria-label") ?? "").trim();
   return (text || label).slice(0, 80);
+}
+
+function readableText(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+  if (node instanceof Element && node.getAttribute("aria-hidden") === "true") {
+    return "";
+  }
+  let text = "";
+  for (const child of node.childNodes) text += readableText(child);
+  return text;
 }
 
 function contactChannel(

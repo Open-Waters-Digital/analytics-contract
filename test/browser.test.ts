@@ -131,6 +131,43 @@ describe("the queue before PostHog loads", () => {
   });
 });
 
+describe("cta_text", () => {
+  async function clickText(markup: string): Promise<unknown> {
+    runCallbacksImmediately();
+    const { mod, recorder } = await freshModule();
+    document.body.innerHTML = markup;
+    mod.initAnalytics(config);
+    await vi.waitFor(() => expect(recorder.config).not.toBeNull());
+    document.querySelector<HTMLElement>("[data-cta]")?.click();
+    return recorder.events.find((e) => e.event === "cta_clicked")?.properties[
+      "cta_text"
+    ];
+  }
+
+  it("skips decorative copies hidden from assistive technology", async () => {
+    const text = await clickText(`
+      <a href="/join" data-cta="join">
+        <span class="sr-only">Sign Up</span>
+        <span aria-hidden="true"><span>Sign Up</span><span>Sign Up</span></span>
+      </a>`);
+    expect(text).toBe("Sign Up");
+  });
+
+  it("keeps text marked aria-hidden=false", async () => {
+    const text = await clickText(
+      `<button data-cta="go"><span aria-hidden="false">Go</span> now</button>`,
+    );
+    expect(text).toBe("Go now");
+  });
+
+  it("falls back to the label when every copy is hidden", async () => {
+    const text = await clickText(
+      `<button data-cta="menu" aria-label="Open menu"><span aria-hidden="true">≡</span></button>`,
+    );
+    expect(text).toBe("Open menu");
+  });
+});
+
 describe("the heatmaps option", () => {
   async function initWith(
     override: Partial<Parameters<Browser["initAnalytics"]>[0]>,
