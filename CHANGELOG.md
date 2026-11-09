@@ -3,7 +3,18 @@
 Package versions. The taxonomy (the event contract) has its own changelog in
 [`docs/events.md`](docs/events.md).
 
-## 1.2.0 — unreleased
+## 1.2.1 — unreleased
+
+A fix; no event, property or API changes.
+
+- `cta_text` skips text inside `aria-hidden="true"`. A control that animates
+  its label (femtech's rolling label) draws decorative copies beside one
+  readable copy, and the package sent all of them: "Sign UpSign UpSign Up".
+  It now sends what a screen reader reads, and still falls back to
+  `aria-label` when nothing is readable.
+- The eager `/browser` entry is 2,130 bytes gzipped, 76 more than 1.2.0.
+
+## 1.2.0 — 2026-09-24
 
 Taxonomy v3: the server-side lead count splits by channel.
 

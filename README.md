@@ -26,7 +26,7 @@ only what it uses.
 you use.
 
 **Cost in the page**, measured by `pnpm run measure` on every CI run: the eager
-`/browser` module is **2.1 KB gzipped** (2,054 bytes at 1.2.0). `posthog-js` arrives as a separate
+`/browser` module is **2.1 KB gzipped** (2,130 bytes at 1.2.1). `posthog-js` arrives as a separate
 chunk after the page is idle, and is **about 101 KB gzipped**; it has no smaller
 entry point. Nothing PostHog-related is in the initial bundle.
 
