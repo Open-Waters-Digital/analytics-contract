@@ -7,6 +7,7 @@ import {
   renderChannels,
   renderMarkdown,
   renderTypeScript,
+  resolveDashboard,
   resolveVersion,
   validateChannels,
   validateSource,
@@ -109,6 +110,60 @@ describe("the source file", () => {
     );
   });
 
+  it("names an enum value marked earlier than its property", () => {
+    const problems = problemsFor((j) => {
+      push(j, ["events", 1, "properties", 0, "type", "enum"], {
+        value: "fax",
+        since: 0,
+      });
+    });
+    expect(problems).toContainEqual(
+      expect.stringContaining('contact_link_clicked.channel value "fax"'),
+    );
+  });
+
+  it("names an enum value older than its property", () => {
+    const problems = problemsFor((j) => {
+      const lead = (at(j, ["events"]) as { name: string }[]).findIndex(
+        (e) => e.name === "lead_submitted",
+      );
+      // heard_about is since 3.
+      push(j, ["events", lead, "properties", 7, "type", "enum"], {
+        value: "radio",
+        since: 2,
+      });
+    });
+    expect(problems).toContainEqual(
+      'event lead_submitted.heard_about value "radio": a value cannot be older than its property',
+    );
+  });
+
+  it("names a duplicate between a plain and a versioned value", () => {
+    const problems = problemsFor((j) => {
+      push(j, ["events", 1, "properties", 0, "type", "enum"], {
+        value: "email",
+        since: 4,
+      });
+    });
+    expect(problems).toContainEqual(
+      expect.stringContaining("enum values must be unique"),
+    );
+  });
+
+  it("refuses a value added later to a required property's enum", () => {
+    const problems = problemsFor((j) => {
+      push(j, ["events", 1, "properties", 0, "type", "enum"], {
+        value: "fax",
+        since: 4,
+      });
+    });
+    expect(problems).toContainEqual(
+      expect.stringContaining(
+        "only an optional property's enum may gain values",
+      ),
+    );
+  });
+
   it("reports every problem at once", () => {
     const problems = problemsFor((j) => {
       set(j, ["events", 0, "stage"], "wonder");
@@ -136,6 +191,55 @@ describe("published versions", () => {
     expect(resolveVersion(source, version)).toEqual(snapshot);
   });
 
+  it("a value added in a later version resolves without it at the earlier", () => {
+    const json = raw();
+    push(json, ["versions"], {
+      version: 5,
+      date: "2027-01-01",
+      change: "test",
+    });
+    const lead = (at(json, ["events"]) as { name: string }[]).findIndex(
+      (e) => e.name === "lead_submitted",
+    );
+    push(json, ["events", lead, "properties", 8, "type", "enum"], {
+      value: "le_chat",
+      since: 5,
+    });
+    const fixture = validateSource(json);
+    const aiTool = (version: number) =>
+      resolveVersion(fixture, version)
+        .events.find((e) => e.name === "lead_submitted")
+        ?.properties.find((p) => p.name === "ai_tool")?.type;
+    expect(aiTool(4)).toEqual({
+      kind: "enum",
+      values: ["chatgpt", "claude", "gemini", "perplexity", "copilot", "other"],
+    });
+    expect(aiTool(5)).toEqual({
+      kind: "enum",
+      values: [
+        "chatgpt",
+        "claude",
+        "gemini",
+        "perplexity",
+        "copilot",
+        "other",
+        "le_chat",
+      ],
+    });
+  });
+
+  it("a value added without its version breaks the snapshot", () => {
+    const json = raw();
+    const lead = (at(json, ["events"]) as { name: string }[]).findIndex(
+      (e) => e.name === "lead_submitted",
+    );
+    push(json, ["events", lead, "properties", 7, "type", "enum"], "radio");
+    const snapshot = JSON.parse(
+      readFileSync(`${root}contract/published/v3.json`, "utf8"),
+    ) as unknown;
+    expect(resolveVersion(validateSource(json), 3)).not.toEqual(snapshot);
+  });
+
   it("a renamed event breaks the snapshot", () => {
     const json = raw();
     // video_played, because no dashboard insight reads it: the validator would
@@ -145,6 +249,85 @@ describe("published versions", () => {
       readFileSync(`${root}contract/published/v1.json`, "utf8"),
     ) as unknown;
     expect(resolveVersion(validateSource(json), 1)).not.toEqual(snapshot);
+  });
+});
+
+describe("taxonomy v4", () => {
+  const lead = (version: number) =>
+    resolveVersion(source, version).events.find(
+      (e) => e.name === "lead_submitted",
+    );
+  const values = (version: number, property: string) => {
+    const type = lead(version)?.properties.find(
+      (p) => p.name === property,
+    )?.type;
+    return type?.kind === "enum" ? type.values : undefined;
+  };
+
+  it("v3's heard_about has its eight values, and v4's nine", () => {
+    expect(values(3, "heard_about")).toHaveLength(8);
+    expect(values(3, "heard_about")).not.toContain("ai_assistant");
+    expect(values(4, "heard_about")).toHaveLength(9);
+    expect(values(4, "heard_about")).toContain("ai_assistant");
+  });
+
+  it("v3's lead_submitted has neither follow-up", () => {
+    const names = lead(3)?.properties.map((p) => p.name);
+    expect(names).not.toContain("ai_tool");
+    expect(names).not.toContain("search_engine");
+  });
+
+  it("v4 adds the follow-ups as optional enums", () => {
+    expect(values(4, "ai_tool")).toEqual([
+      "chatgpt",
+      "claude",
+      "gemini",
+      "perplexity",
+      "copilot",
+      "other",
+    ]);
+    expect(values(4, "search_engine")).toEqual([
+      "google",
+      "bing",
+      "duckduckgo",
+      "ecosia",
+      "other",
+    ]);
+    for (const name of ["ai_tool", "search_engine"]) {
+      expect(lead(4)?.properties.find((p) => p.name === name)?.required).toBe(
+        false,
+      );
+    }
+  });
+
+  it("the dashboard gains both insights at v4 and has neither at v3", () => {
+    const keys = (version: number) =>
+      resolveDashboard(source, version).map((d) => d.key);
+    const added = [
+      "action.lead_submitted_by_ai_tool",
+      "action.lead_submitted_by_search_engine",
+    ];
+    for (const key of added) {
+      expect(keys(3)).not.toContain(key);
+      expect(keys(4)).toContain(key);
+    }
+    expect(keys(4).filter((k) => !keys(3).includes(k))).toEqual(added);
+    const insight = resolveDashboard(source, 4).find(
+      (d) => d.key === "action.lead_submitted_by_ai_tool",
+    );
+    expect(insight).toMatchObject({
+      kind: "trend",
+      interval: "month",
+      breakdown: { property: "ai_tool", scope: "event" },
+    });
+  });
+
+  it("the docs say the prompt and the search are never sent", () => {
+    const docs = renderMarkdown(source);
+    expect(docs).toContain(
+      "What the visitor asked the assistant is never sent",
+    );
+    expect(docs).toContain("What the visitor searched for is never sent");
   });
 });
 

@@ -210,7 +210,7 @@ describe("end to end", () => {
       utm_source: "facebook",
       utm_medium: "paid",
       referring_domain: "l.facebook.com",
-      taxonomy_version: "3",
+      taxonomy_version: "4",
     });
     expect(props).not.toHaveProperty("utm_campaign");
     expect(JSON.stringify(props)).not.toMatch(/jane@|07700/);

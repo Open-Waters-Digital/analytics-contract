@@ -15,6 +15,11 @@
       "version": 3,
       "date": "2026-09-24",
       "change": "Added `channel`, `utm_source`, `utm_medium`, `utm_campaign`, `referring_domain` and `heard_about` to `lead_submitted`, and `channel` to `lead_qualified` and `deal_won`, so the server-side lead count splits by where visitors came from. All optional: the server capture sends `channel: \"unknown\"` on a lead that has none. Nothing renamed or removed"
+    },
+    {
+      "version": 4,
+      "date": "2026-11-21",
+      "change": "Added the value `ai_assistant` to `lead_submitted`'s `heard_about`, and two optional properties to `lead_submitted`: `ai_tool`, which assistant, sent only with `heard_about: \"ai_assistant\"`; and `search_engine`, which engine, sent only with `heard_about: \"search_engine\"`. The server capture drops either when it arrives with any other answer. Enum values now carry the version that added them, so v3 resolves without `ai_assistant`. Nothing renamed or removed"
     }
   ],
   "superProperties": [
@@ -461,11 +466,37 @@
               "press",
               "event",
               "returning_client",
+              "other",
+              { "value": "ai_assistant", "since": 4 }
+            ]
+          },
+          "required": false,
+          "doc": "the visitor's own answer, where a site asks; each site maps its wording onto this list. From v4, `ai_assistant`: an AI assistant such as ChatGPT or Perplexity suggested the site"
+        },
+        {
+          "name": "ai_tool",
+          "since": 4,
+          "type": {
+            "enum": [
+              "chatgpt",
+              "claude",
+              "gemini",
+              "perplexity",
+              "copilot",
               "other"
             ]
           },
           "required": false,
-          "doc": "the visitor's own answer, where a site asks; each site maps its wording onto this list"
+          "doc": "which assistant, where a site asks: `chatgpt`, `claude`, `gemini` (Google's, including its AI answers in search), `perplexity`, `copilot` (Microsoft's), or `other`. Sent only with `heard_about: \"ai_assistant\"`; the server capture drops it otherwise. What the visitor asked the assistant is never sent: it stays in the site's own store"
+        },
+        {
+          "name": "search_engine",
+          "since": 4,
+          "type": {
+            "enum": ["google", "bing", "duckduckgo", "ecosia", "other"]
+          },
+          "required": false,
+          "doc": "which search engine, where a site asks: `google`, `bing`, `duckduckgo`, `ecosia`, or `other`. Sent only with `heard_about: \"search_engine\"`; the server capture drops it otherwise. What the visitor searched for is never sent: it stays in the site's own store"
         }
       ]
     },
@@ -941,12 +972,48 @@
           "property": "heard_about",
           "scope": "event"
         }
+      },
+      {
+        "key": "action.lead_submitted_by_ai_tool",
+        "since": 4,
+        "stage": "action",
+        "title": "`lead_submitted` by `ai_tool`",
+        "kind": "trend",
+        "interval": "month",
+        "series": [
+          {
+            "event": "lead_submitted",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "ai_tool",
+          "scope": "event"
+        }
+      },
+      {
+        "key": "action.lead_submitted_by_search_engine",
+        "since": 4,
+        "stage": "action",
+        "title": "`lead_submitted` by `search_engine`",
+        "kind": "trend",
+        "interval": "month",
+        "series": [
+          {
+            "event": "lead_submitted",
+            "math": "total"
+          }
+        ],
+        "breakdown": {
+          "property": "search_engine",
+          "scope": "event"
+        }
       }
     ]
   },
   "changing": [
     "Add, never rename. A replaced event keeps sending for one full reporting period beside its successor.",
-    "Add the new version to `versions` in `contract/events.json`, mark every addition with its `since`, run `pnpm run generate`, and freeze the version with `pnpm run freeze <version>`.",
+    "Add the new version to `versions` in `contract/events.json`, mark every addition with its `since` (a value added to an existing property's enum is written `{ \"value\": \"new_value\", \"since\": <version> }`, and only an optional property's enum may gain values), run `pnpm run generate`, and freeze the version with `pnpm run freeze <version>`.",
     "Add a changelog line: the version's `change` is it.",
     "Release the package as a minor version. Each site adopts it through its Renovate pull request; the `taxonomy_version` property shows which sites are behind."
   ]

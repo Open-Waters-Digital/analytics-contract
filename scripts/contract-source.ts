@@ -16,8 +16,15 @@ import type {
 
 // ── Source shape ────────────────────────────────────────────────────────────
 
+/**
+ * An enum value: a plain string or number has its property's `since`; an
+ * object marks a value a later version added to an existing property.
+ */
+type SourceEnumValue =
+  string | number | { value: string | number; since: number };
+
 type SourceType =
-  "string" | "integer" | "boolean" | { enum: (string | number)[] };
+  "string" | "integer" | "boolean" | { enum: SourceEnumValue[] };
 
 interface SourceProperty {
   name: string;
@@ -137,15 +144,37 @@ export function validateSource(raw: unknown): ContractSource {
     }
   };
 
-  const checkType = (where: string, type: unknown) => {
+  const isScalar = (x: unknown): x is string | number =>
+    typeof x === "string" || typeof x === "number";
+  // `owner` is the property's own `since`: a value cannot predate it.
+  const checkType = (where: string, type: unknown, owner: unknown) => {
     if (type === "string" || type === "integer" || type === "boolean") return;
     if (isObject(type) && Array.isArray(type["enum"])) {
-      const values = type["enum"];
-      if (values.length === 0) fail(where, "an enum needs at least one value");
-      if (
-        !values.every((x) => typeof x === "string" || typeof x === "number")
-      ) {
-        fail(where, "enum values must be strings or numbers");
+      const entries: unknown[] = type["enum"];
+      if (entries.length === 0) fail(where, "an enum needs at least one value");
+      const values: unknown[] = [];
+      for (const x of entries) {
+        if (isScalar(x)) {
+          values.push(x);
+          continue;
+        }
+        if (!isObject(x) || !isScalar(x["value"])) {
+          fail(
+            where,
+            "enum values must be strings, numbers or { value, since }",
+          );
+          continue;
+        }
+        values.push(x["value"]);
+        const vw = `${where} value ${JSON.stringify(x["value"])}`;
+        checkSince(vw, x["since"]);
+        if (
+          typeof x["since"] === "number" &&
+          typeof owner === "number" &&
+          x["since"] < owner
+        ) {
+          fail(vw, "a value cannot be older than its property");
+        }
       }
       if (new Set(values).size !== values.length)
         fail(where, "enum values must be unique");
@@ -205,7 +234,25 @@ export function validateSource(raw: unknown): ContractSource {
           "a property added after its event must be optional, or old senders break",
         );
       }
-      checkType(pw, p["type"]);
+      checkType(pw, p["type"], p["since"]);
+      const type = p["type"];
+      if (
+        p["required"] === true &&
+        isObject(type) &&
+        Array.isArray(type["enum"]) &&
+        type["enum"].some(
+          (x) =>
+            isObject(x) &&
+            typeof x["since"] === "number" &&
+            typeof p["since"] === "number" &&
+            x["since"] > p["since"],
+        )
+      ) {
+        fail(
+          pw,
+          "only an optional property's enum may gain values in a later version",
+        );
+      }
     });
   });
 
@@ -222,7 +269,7 @@ export function validateSource(raw: unknown): ContractSource {
     if (superNames.has(s["name"])) fail(where, "duplicate super property");
     superNames.add(s["name"]);
     checkSince(where, s["since"]);
-    checkType(where, s["type"]);
+    checkType(where, s["type"], s["since"]);
     if (!["browser", "server", "both"].includes(s["origin"] as string)) {
       fail(where, "origin must be browser, server or both");
     }
@@ -304,15 +351,35 @@ export interface ResolvedVersion {
   pageTypes: string[];
 }
 
-function toType(type: SourceType): PropertyType {
+const enumValue = (v: SourceEnumValue): string | number =>
+  typeof v === "object" ? v.value : v;
+
+/** Plain values have their property's `since`, so they are always included. */
+const enumSince = (v: SourceEnumValue, owner: number): number =>
+  typeof v === "object" ? v.since : owner;
+
+/**
+ * A type as it stood at `version`: an enum lists only the values it had then,
+ * as plain values, so a published snapshot never changes shape.
+ */
+function toType(
+  type: SourceType,
+  owner: number,
+  version: number,
+): PropertyType {
   if (typeof type === "string") return { kind: type };
-  return { kind: "enum", values: type.enum };
+  return {
+    kind: "enum",
+    values: type.enum
+      .filter((v) => enumSince(v, owner) <= version)
+      .map(enumValue),
+  };
 }
 
-function toProperty(p: SourceProperty): PropertySpec {
+function toProperty(p: SourceProperty, version: number): PropertySpec {
   return {
     name: p.name,
-    type: toType(p.type),
+    type: toType(p.type, p.since, version),
     required: p.required,
     nullable: p.nullable ?? false,
   };
@@ -337,11 +404,15 @@ export function resolveVersion(
         origin: e.origin,
         properties: e.properties
           .filter((p) => p.since <= version)
-          .map(toProperty),
+          .map((p) => toProperty(p, version)),
       })),
     superProperties: source.superProperties
       .filter((s) => s.since <= version)
-      .map((s) => ({ name: s.name, type: toType(s.type), origin: s.origin })),
+      .map((s) => ({
+        name: s.name,
+        type: toType(s.type, s.since, version),
+        origin: s.origin,
+      })),
     pageTypes: source.pageTypes.values
       .filter((p) => p.since <= version)
       .map((p) => p.value),
@@ -481,11 +552,16 @@ export function renderTypeScript(source: ContractSource): string {
 
 const cell = (text: string) => text.replace(/\|/g, "\\|");
 
-function propertyDoc(p: SourceProperty): string {
+function propertyDoc(p: SourceProperty, current: number): string {
   if (p.doc !== undefined)
     return p.doc === "" ? `\`${p.name}\`` : `\`${p.name}\` (${p.doc})`;
   if (typeof p.type === "object") {
-    return `\`${p.name}\` (${p.type.enum.map((v) => `\`${v}\``).join(" | ")})`;
+    const values = p.type.enum.map((v) => {
+      const since = enumSince(v, p.since);
+      // A value newer than its property says which version added it.
+      return `\`${enumValue(v)}\`${since > p.since ? sinceNote(since, current) : ""}`;
+    });
+    return `\`${p.name}\` (${values.join(" | ")})`;
   }
   if (p.type === "boolean") return `\`${p.name}\` (boolean)`;
   return `\`${p.name}\``;
@@ -548,7 +624,7 @@ export function renderMarkdown(source: ContractSource): string {
       out.push("| ----- | ---------- | ---------- |");
       for (const e of events) {
         const props = e.properties
-          .map((p) => propertyDoc(p) + sinceNote(p.since, current))
+          .map((p) => propertyDoc(p, current) + sinceNote(p.since, current))
           .join(", ");
         out.push(
           `| \`${e.name}\`${sinceNote(e.since, current)} | ${cell(e.firedWhen)} | ${cell(props)} |`,

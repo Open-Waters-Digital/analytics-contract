@@ -73,7 +73,7 @@ describe("createServerCapture", () => {
     expect(event?.properties).toMatchObject({
       ...lead,
       site: "test-site",
-      taxonomy_version: "3",
+      taxonomy_version: "4",
       $process_person_profile: false,
     });
   });
@@ -138,6 +138,95 @@ describe("createServerCapture", () => {
     expect(error).toHaveBeenCalledWith(
       "analytics: lead_submitted capture failed (TypeError)",
     );
+  });
+
+  describe("a lead's follow-up answers go only with their answer", () => {
+    async function sent(
+      event: "lead_submitted" | "lead_qualified",
+      properties: Record<string, unknown>,
+    ): Promise<Record<string, unknown> | undefined> {
+      const { host, received } = await fakePosthog((_req, res) =>
+        res.end("{}"),
+      );
+      const capture = createServerCapture({
+        site: "test-site",
+        key: "phc_test",
+        host,
+      });
+      // Untyped on purpose: a site can send anything at runtime.
+      await (capture as (e: string, p: unknown) => Promise<void>)(
+        event,
+        properties,
+      );
+      return received.flatMap((r) => r.batch).find((e) => e.event === event)
+        ?.properties;
+    }
+
+    it("sends ai_tool with ai_assistant", async () => {
+      const props = await sent("lead_submitted", {
+        ...lead,
+        heard_about: "ai_assistant",
+        ai_tool: "claude",
+      });
+      expect(props).toMatchObject({
+        heard_about: "ai_assistant",
+        ai_tool: "claude",
+      });
+    });
+
+    it("sends search_engine with search_engine", async () => {
+      const props = await sent("lead_submitted", {
+        ...lead,
+        heard_about: "search_engine",
+        search_engine: "google",
+      });
+      expect(props).toMatchObject({
+        heard_about: "search_engine",
+        search_engine: "google",
+      });
+    });
+
+    it("drops a mismatched follow-up and keeps the answer", async () => {
+      const props = await sent("lead_submitted", {
+        ...lead,
+        heard_about: "recommendation",
+        search_engine: "google",
+        ai_tool: "chatgpt",
+      });
+      expect(props).toMatchObject({ ...lead, heard_about: "recommendation" });
+      expect(props).not.toHaveProperty("search_engine");
+      expect(props).not.toHaveProperty("ai_tool");
+    });
+
+    it("drops the other follow-up when one matches", async () => {
+      const props = await sent("lead_submitted", {
+        ...lead,
+        heard_about: "ai_assistant",
+        ai_tool: "gemini",
+        search_engine: "bing",
+      });
+      expect(props).toMatchObject({ ai_tool: "gemini" });
+      expect(props).not.toHaveProperty("search_engine");
+    });
+
+    it("drops both when there is no heard_about", async () => {
+      const props = await sent("lead_submitted", {
+        ...lead,
+        ai_tool: "perplexity",
+        search_engine: "ecosia",
+      });
+      expect(props).toMatchObject(lead);
+      expect(props).not.toHaveProperty("ai_tool");
+      expect(props).not.toHaveProperty("search_engine");
+    });
+
+    it("leaves other events untouched", async () => {
+      const props = await sent("lead_qualified", {
+        ...lead,
+        ai_tool: "copilot",
+      });
+      expect(props).toMatchObject({ ai_tool: "copilot" });
+    });
   });
 
   it("gives every event a different distinct id", async () => {

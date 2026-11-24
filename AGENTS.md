@@ -33,7 +33,9 @@ They are different things, and keeping them apart is the point.
 - **The taxonomy version** is the contract: which events exist and what they
   carry. Every event sends it as `taxonomy_version`. It only ever goes up, and
   an event is never renamed or repurposed (see `docs/events.md`, "Changing this
-  list").
+  list"). A version adds events, optional properties, or values to an optional
+  property's enum, written `{ "value": …, "since": <version> }` so every older
+  version still resolves to its frozen snapshot.
 - **The package version** is semver for the code:
 
 | Change                                        | Package version | Merge in consumers                                         |
@@ -84,8 +86,10 @@ renovate/default.json      This package's Renovate rules. Organisation-wide sett
 
 **Released:** 1.0.0 on 23 September 2026, at taxonomy v2. 1.1.0, the
 `heatmaps` option, on 24 September 2026. 1.2.0 (taxonomy v3, leads by channel)
-is tagged. 1.2.1 (`cta_text` skips `aria-hidden` copies) is committed and
-waits for its tag.
+is tagged. 1.2.1 (`cta_text` skips `aria-hidden` copies) is tagged, 9
+November 2026. 1.3.0 (taxonomy v4, an AI assistant as a lead source: the
+`ai_assistant` answer and the `ai_tool` and `search_engine` follow-ups) is
+built and waits for its commit and tag.
 
 ## Working with OpenSpec
 

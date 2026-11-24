@@ -233,6 +233,27 @@ void capture("lead_submitted", {
 `classifyChannel` comes from `/contract` and `parseAttribution` from `/server`.
 A lead that passes no channel is sent as `channel: "unknown"`.
 
+**How they heard (taxonomy v3, follow-ups in v4, 1.3.0).** Where a site asks,
+it maps the visitor's answer onto `heard_about`. From v4, `ai_assistant` is one
+of its values, and two follow-ups say which: `ai_tool` (`chatgpt`, `claude`,
+`gemini`, `perplexity`, `copilot`, `other`) goes only with
+`heard_about: "ai_assistant"`, and `search_engine` (`google`, `bing`,
+`duckduckgo`, `ecosia`, `other`) only with `heard_about: "search_engine"`. The
+capture drops a follow-up sent with any other answer, or with none. What the
+visitor asked the assistant, or searched for, has no property: it stays in the
+site's own store.
+
+```ts
+void capture("lead_submitted", {
+  form_id: "contact",
+  lead_type: "general",
+  channel: classifyChannel(attribution),
+  ...attribution,
+  heard_about: "ai_assistant",
+  ai_tool: "perplexity",
+});
+```
+
 `capture` never throws or rejects, and resolves within five seconds whatever
 PostHog does.
 

@@ -44,6 +44,34 @@ export type ServerCapture = <E extends keyof ServerEvents>(
 ) => Promise<void>;
 
 /**
+ * A lead's follow-up answers go only with the answer they follow (spec
+ * lead-attribution, taxonomy v4): `ai_tool` with `heard_about:
+ * "ai_assistant"`, `search_engine` with `heard_about: "search_engine"`. A
+ * mismatched one is dropped, so a report never shows "Google" against a
+ * recommendation.
+ */
+function withMatchedFollowUps(properties: object): object {
+  const {
+    ai_tool: aiTool,
+    search_engine: searchEngine,
+    ...rest
+  } = properties as {
+    heard_about?: unknown;
+    ai_tool?: unknown;
+    search_engine?: unknown;
+  };
+  return {
+    ...rest,
+    ...(aiTool !== undefined && rest.heard_about === "ai_assistant"
+      ? { ai_tool: aiTool }
+      : {}),
+    ...(searchEngine !== undefined && rest.heard_about === "search_engine"
+      ? { search_engine: searchEngine }
+      : {}),
+  };
+}
+
+/**
  * Returns the capture function for one site. Call it once per process, and
  * call the result with `void` after the real work has succeeded. It never
  * throws and never rejects; a failure is logged with the event name and
@@ -71,7 +99,9 @@ export function createServerCapture(
         distinctId: crypto.randomUUID(),
         event,
         properties: {
-          ...properties,
+          ...(event === "lead_submitted"
+            ? withMatchedFollowUps(properties)
+            : properties),
           // Every lead carries a channel (spec lead-attribution). It is
           // optional in the contract, so a site that has not wired the
           // attribution is recorded as "unknown", not missing.

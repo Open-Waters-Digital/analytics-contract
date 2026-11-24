@@ -3,7 +3,31 @@
 Package versions. The taxonomy (the event contract) has its own changelog in
 [`docs/events.md`](docs/events.md).
 
-## 1.2.1 — unreleased
+## 1.3.0 — unreleased
+
+Taxonomy v4: an AI assistant as a lead source.
+
+- `lead_submitted`'s `heard_about` gains `ai_assistant`. Two optional
+  properties say which: `ai_tool` (`chatgpt`, `claude`, `gemini`,
+  `perplexity`, `copilot`, `other`), sent only with
+  `heard_about: "ai_assistant"`, and `search_engine` (`google`, `bing`,
+  `duckduckgo`, `ecosia`, `other`), sent only with
+  `heard_about: "search_engine"`. No property can hold the prompt or the
+  search itself.
+- `/server`: `createServerCapture` drops `ai_tool` or `search_engine` from a
+  `lead_submitted` whose `heard_about` is not its answer, or is missing.
+  Other events are untouched.
+- The contract's enum values may carry their own `since`, so a version can
+  add values to an existing optional property and every older version still
+  resolves exactly as published. v1 to v3 are unchanged; `contract/published/v4.json`
+  is frozen.
+- The baseline dashboard gains `lead_submitted` by `ai_tool` and by
+  `search_engine`, monthly.
+- Types only widen: a site's `heard_about` list keeps compiling. A site with a
+  `Record` over every `heard_about` value needs a label for `ai_assistant`.
+- The eager `/browser` entry is unchanged.
+
+## 1.2.1 — 2026-11-09
 
 A fix; no event, property or API changes.
 
