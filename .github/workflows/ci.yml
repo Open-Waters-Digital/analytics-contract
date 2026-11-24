@@ -23,13 +23,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11.5.2
+          version: 11.29.0
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.22.3"
+          node-version: "22.23.5"
           cache: pnpm
 
       - name: Install dependencies
